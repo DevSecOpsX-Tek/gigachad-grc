@@ -12,3 +12,4 @@ docker-compose*.yml text eol=lf
 # Default for other text files (auto-detect)
 * text=auto
 
+
