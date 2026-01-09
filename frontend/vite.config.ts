@@ -61,6 +61,29 @@ export default defineConfig(({ mode }) => {
               return 'vendor-http';
             }
             
+            // Recharts and ALL its dependencies must stay together to avoid
+            // "Cannot access 'N' before initialization" errors caused by
+            // circular dependencies between recharts, d3-*, and react-smooth.
+            // This includes all d3 modules that recharts depends on.
+            if (
+              id.includes('recharts') ||
+              id.includes('d3-interpolate') ||
+              id.includes('d3-color') ||
+              id.includes('d3-path') ||
+              id.includes('d3-shape') ||
+              id.includes('d3-scale') ||
+              id.includes('d3-array') ||
+              id.includes('d3-format') ||
+              id.includes('d3-time') ||
+              id.includes('d3-time-format') ||
+              id.includes('react-smooth') ||
+              id.includes('react-is') ||
+              id.includes('victory-vendor') ||
+              id.includes('internmap')
+            ) {
+              return 'vendor-charts';
+            }
+            
             // Everything else stays in the main vendor bundle to avoid
             // circular dependency issues that cause "Cannot access 'X' before initialization"
             return 'vendor';
