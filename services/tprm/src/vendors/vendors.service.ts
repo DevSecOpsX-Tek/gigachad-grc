@@ -129,7 +129,8 @@ export class VendorsService {
 
   /**
    * Auto-generate a unique vendorId in format VND-XXXX
-   * Finds the highest existing vendor ID and increments from there
+   * Finds the highest existing sequential vendor ID and increments from there
+   * Ignores timestamp-based IDs (more than 6 digits) to maintain proper sequencing
    */
   private async generateVendorId(): Promise<string> {
     // Find all vendors and extract the highest numeric ID
@@ -142,10 +143,12 @@ export class VendorsService {
 
     let maxNum = 0;
     for (const vendor of vendors) {
-      const match = vendor.vendorId.match(/^VND-(\d+)$/);
+      // Match VND- followed by 1-6 digits (sequential IDs, not timestamps)
+      const match = vendor.vendorId.match(/^VND-0*(\d{1,6})$/);
       if (match) {
         const num = parseInt(match[1], 10);
-        if (num > maxNum) {
+        // Only consider numbers up to 999999 (sequential IDs, not timestamps)
+        if (num <= 999999 && num > maxNum) {
           maxNum = num;
         }
       }
