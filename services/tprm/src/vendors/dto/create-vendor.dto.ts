@@ -1,11 +1,15 @@
-import { IsString, IsOptional, IsEmail, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsIn, ValidateIf } from 'class-validator';
 
 export class CreateVendorDto {
+  // organizationId is injected from user context in controller
   @IsString()
-  organizationId: string;
+  @IsOptional()
+  organizationId?: string;
 
+  // vendorId is auto-generated if not provided
   @IsString()
-  vendorId: string;
+  @IsOptional()
+  vendorId?: string;
 
   @IsString()
   name: string;
@@ -15,10 +19,12 @@ export class CreateVendorDto {
   legalName?: string;
 
   @IsIn(['software_vendor', 'cloud_provider', 'professional_services', 'hardware_vendor', 'consultant'])
-  category: string;
+  @IsOptional()
+  category?: string;
 
   @IsIn(['tier_1', 'tier_2', 'tier_3', 'tier_4'])
-  tier: string;
+  @IsOptional()
+  tier?: string;
 
   @IsIn(['active', 'inactive', 'pending_onboarding', 'offboarding', 'terminated'])
   @IsOptional()
@@ -36,6 +42,8 @@ export class CreateVendorDto {
   @IsOptional()
   primaryContact?: string;
 
+  // Only validate email format if a non-empty value is provided
+  @ValidateIf((o) => o.primaryContactEmail && o.primaryContactEmail.length > 0)
   @IsEmail()
   @IsOptional()
   primaryContactEmail?: string;

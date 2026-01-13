@@ -1039,6 +1039,20 @@ export const vendorsApi = {
   // AI analysis endpoints
   analyzeDocument: (vendorId: string, documentId: string): Promise<AxiosResponse<SOC2AnalysisResult>> =>
     api.post(`/api/vendors/${vendorId}/documents/${documentId}/analyze`),
+  // Risk Assessment Wizard endpoints
+  submitRiskAssessment: (vendorId: string, data: VendorRiskAssessmentRequest): Promise<AxiosResponse<VendorRiskAssessmentResult>> =>
+    api.post(`/api/vendors/${vendorId}/risk-assessment`, data),
+  getLatestRiskAssessment: (vendorId: string): Promise<AxiosResponse<VendorRiskAssessmentResult | null>> =>
+    api.get(`/api/vendors/${vendorId}/risk-assessment/latest`),
+  getRiskAssessmentHistory: (vendorId: string): Promise<AxiosResponse<VendorRiskAssessmentResult[]>> =>
+    api.get(`/api/vendors/${vendorId}/risk-assessment/history`),
+  // Security Scan endpoints
+  initiateSecurityScan: (vendorId: string, targetUrl?: string): Promise<AxiosResponse<VendorSecurityScanResult>> =>
+    api.post(`/api/vendors/${vendorId}/security-scan`, { targetUrl }),
+  getLatestSecurityScan: (vendorId: string): Promise<AxiosResponse<VendorSecurityScanResult | null>> =>
+    api.get(`/api/vendors/${vendorId}/security-scan/latest`),
+  getSecurityScan: (vendorId: string, scanId: string): Promise<AxiosResponse<VendorSecurityScanResult>> =>
+    api.get(`/api/vendors/${vendorId}/security-scan/${scanId}`),
 };
 
 // Types for vendor reviews
@@ -1113,6 +1127,126 @@ export interface ControlGap {
   description: string;
   recommendation: string;
   priority: 'low' | 'medium' | 'high';
+}
+
+// Types for Vendor Risk Assessment Wizard
+export interface VendorRiskAssessmentRequest {
+  title: string;
+  description?: string;
+  assessor: string;
+  assetScore: number;
+  threatScore: number;
+  likelihood: {
+    frequency: number;
+    capability: number;
+    controlStrength: number;
+  };
+  impact: {
+    productivity: number;
+    response: number;
+    recovery: number;
+    competitive: number;
+    legal: number;
+    reputation: number;
+  };
+}
+
+export interface VendorRiskAssessmentResult {
+  id: string;
+  vendorId: string;
+  title: string;
+  description?: string;
+  assessor: string;
+  date: string;
+  assetScore: number;
+  threatScore: number;
+  likelihood: {
+    frequency: number;
+    capability: number;
+    controlStrength: number;
+    total: number;
+    level: string;
+    score: number;
+  };
+  impact: {
+    productivity: number;
+    response: number;
+    recovery: number;
+    competitive: number;
+    legal: number;
+    reputation: number;
+    total: number;
+    level: string;
+    score: number;
+  };
+  totalScore: number;
+  riskLevel: 'Minimal' | 'Low' | 'Medium' | 'High' | 'Critical';
+  recommendedAction: string;
+  nextReviewDate: string;
+}
+
+// Types for Vendor Security Scan
+export interface VendorSecurityFinding {
+  id: string;
+  category: 'Security' | 'Breach' | 'Reputation' | 'Compliance';
+  level: 'Critical' | 'High' | 'Medium' | 'Low' | 'Info';
+  title: string;
+  description: string;
+  impact: string;
+  remediation: string;
+}
+
+export interface VendorSecurityScanResult {
+  id: string;
+  vendorId: string;
+  targetUrl: string;
+  scannedAt: string;
+  status: 'completed' | 'failed' | 'partial';
+  ssl: {
+    enabled: boolean;
+    grade: string;
+    issuer?: string;
+    expiry?: string;
+    daysUntilExpiry?: number;
+    httpRedirectsToHttps: boolean;
+  };
+  securityHeaders: Record<string, string>;
+  missingHeaders: string[];
+  dns: {
+    hasSPF: boolean;
+    hasDMARC: boolean;
+    hasDNSSEC: boolean;
+    hasCAA: boolean;
+  };
+  webPresence: {
+    accessible: boolean;
+    statusCode?: number;
+    title?: string;
+    hasContactInfo: boolean;
+    hasPrivacyPolicy: boolean;
+  };
+  compliance: {
+    hasTrustPortal: boolean;
+    trustPortalUrl?: string;
+    trustPortalProvider?: string;
+    hasSOC2: boolean;
+    soc2Type?: string;
+    hasISO27001: boolean;
+    certifications: string[];
+    hasBugBounty: boolean;
+  };
+  categoryScores: {
+    security: number;
+    breach: number;
+    reputation: number;
+    compliance: number;
+  };
+  overallScore: number;
+  riskLevel: 'Critical' | 'High' | 'Medium' | 'Low';
+  findings: VendorSecurityFinding[];
+  summary: string;
+  keyRisks: string[];
+  recommendations: string[];
 }
 
 export const contractsApi = {
@@ -1601,6 +1735,19 @@ export interface TprmContractSettings {
   autoRenewNotification?: boolean;
 }
 
+/**
+ * Feature Settings - controls which TPRM features are enabled
+ * Note: Disabling a feature hides it from the UI but preserves all data
+ */
+export interface TprmFeatureSettings {
+  enableSecurityScanning?: boolean;
+  enableRiskAssessmentWizard?: boolean;
+  enableSubdomainSpider?: boolean;
+  enableVendorPortal?: boolean;
+  enableContractManagement?: boolean;
+  enableQuestionnaireAutomation?: boolean;
+}
+
 export interface TprmConfiguration {
   id: string;
   organizationId: string;
@@ -1615,6 +1762,7 @@ export interface TprmConfiguration {
   };
   assessmentSettings: TprmAssessmentSettings;
   contractSettings: TprmContractSettings;
+  featureSettings: TprmFeatureSettings;
   createdAt: string;
   updatedAt: string;
   updatedBy?: string;
@@ -1629,6 +1777,7 @@ export interface TprmConfigReferenceData {
     riskThresholds: TprmConfiguration['riskThresholds'];
     assessmentSettings: TprmAssessmentSettings;
     contractSettings: TprmContractSettings;
+    featureSettings: TprmFeatureSettings;
   };
 }
 

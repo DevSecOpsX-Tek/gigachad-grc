@@ -102,7 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initKeycloak = async () => {
       // Check for dev auth first
-      if (import.meta.env.DEV) {
+      const isDevMode = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_AUTH === 'true';
+      if (isDevMode) {
         const storedAuth = localStorage.getItem('grc-dev-auth');
         if (storedAuth) {
           try {
@@ -233,7 +234,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Dev login bypass - only available in development
   const devLogin = useCallback(() => {
-    if (import.meta.env.DEV) {
+    const isDevMode = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_AUTH === 'true';
+    if (isDevMode) {
       console.log('Dev login activated');
       const devUser: User = {
         id: '8f88a42b-e799-455c-b68a-308d7d2e9aa4', // John Doe - seeded user
@@ -290,7 +292,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         login,
         logout,
-        devLogin: import.meta.env.DEV ? devLogin : undefined,
+        devLogin: (import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_AUTH === 'true') ? devLogin : undefined,
         hasRole,
         hasPermission,
       }}

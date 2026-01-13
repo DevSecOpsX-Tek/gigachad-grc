@@ -5,6 +5,8 @@ import { AssessmentsModule } from './assessments/assessments.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { VendorAIModule } from './ai/vendor-ai.module';
 import { TprmConfigModule } from './config/tprm-config.module';
+import { RiskAssessmentModule } from './risk-assessment/risk-assessment.module';
+import { SecurityScannerModule } from './security-scanner/security-scanner.module';
 import { PrismaService } from './common/prisma.service';
 import { AuditService } from './common/audit.service';
 import { StorageModule } from '@gigachad-grc/shared';
@@ -20,6 +22,8 @@ import { StorageModule } from '@gigachad-grc/shared';
     ContractsModule,
     VendorAIModule,
     TprmConfigModule,
+    RiskAssessmentModule,
+    SecurityScannerModule,
   ],
   providers: [PrismaService, AuditService],
   exports: [PrismaService, AuditService],

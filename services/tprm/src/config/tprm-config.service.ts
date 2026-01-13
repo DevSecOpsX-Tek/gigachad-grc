@@ -8,6 +8,7 @@ import {
   RiskThresholdsDto,
   AssessmentSettingsDto,
   ContractSettingsDto,
+  FeatureSettingsDto,
 } from './dto/tprm-config.dto';
 
 // Default configuration values
@@ -50,6 +51,19 @@ const DEFAULT_CONTRACT_SETTINGS: ContractSettingsDto = {
   expirationWarningDays: [90, 60, 30, 14, 7],
   requireSecurityAddendum: false,
   autoRenewNotification: true,
+};
+
+/**
+ * Default feature settings - all features enabled by default
+ * Note: Disabling a feature hides it from the UI but preserves all data
+ */
+const DEFAULT_FEATURE_SETTINGS: FeatureSettingsDto = {
+  enableSecurityScanning: true,
+  enableRiskAssessmentWizard: true,
+  enableSubdomainSpider: true,
+  enableVendorPortal: true,
+  enableContractManagement: true,
+  enableQuestionnaireAutomation: true,
 };
 
 /**
@@ -144,6 +158,7 @@ export class TprmConfigService {
           riskThresholds: DEFAULT_RISK_THRESHOLDS as any,
           assessmentSettings: DEFAULT_ASSESSMENT_SETTINGS as any,
           contractSettings: DEFAULT_CONTRACT_SETTINGS as any,
+          featureSettings: DEFAULT_FEATURE_SETTINGS as any,
         },
       });
     }
@@ -185,6 +200,9 @@ export class TprmConfigService {
     if (dto.contractSettings !== undefined) {
       updateData.contractSettings = dto.contractSettings;
     }
+    if (dto.featureSettings !== undefined) {
+      updateData.featureSettings = dto.featureSettings;
+    }
 
     const config = await this.prisma.tprmConfiguration.update({
       where: { organizationId },
@@ -210,6 +228,7 @@ export class TprmConfigService {
         riskThresholds: DEFAULT_RISK_THRESHOLDS as any,
         assessmentSettings: DEFAULT_ASSESSMENT_SETTINGS as any,
         contractSettings: DEFAULT_CONTRACT_SETTINGS as any,
+        featureSettings: DEFAULT_FEATURE_SETTINGS as any,
         ...(validUserId && { updatedBy: validUserId }),
       },
       create: {
@@ -219,6 +238,7 @@ export class TprmConfigService {
         riskThresholds: DEFAULT_RISK_THRESHOLDS as any,
         assessmentSettings: DEFAULT_ASSESSMENT_SETTINGS as any,
         contractSettings: DEFAULT_CONTRACT_SETTINGS as any,
+        featureSettings: DEFAULT_FEATURE_SETTINGS as any,
       },
     });
 
@@ -279,6 +299,7 @@ export class TprmConfigService {
         riskThresholds: DEFAULT_RISK_THRESHOLDS,
         assessmentSettings: DEFAULT_ASSESSMENT_SETTINGS,
         contractSettings: DEFAULT_CONTRACT_SETTINGS,
+        featureSettings: DEFAULT_FEATURE_SETTINGS,
       },
     };
   }
@@ -292,6 +313,7 @@ export class TprmConfigService {
       riskThresholds: (config.riskThresholds || DEFAULT_RISK_THRESHOLDS) as RiskThresholdsDto,
       assessmentSettings: (config.assessmentSettings || {}) as AssessmentSettingsDto,
       contractSettings: (config.contractSettings || {}) as ContractSettingsDto,
+      featureSettings: (config.featureSettings || DEFAULT_FEATURE_SETTINGS) as FeatureSettingsDto,
       createdAt: config.createdAt,
       updatedAt: config.updatedAt,
       updatedBy: config.updatedBy,

@@ -128,6 +128,37 @@ export class VendorsService {
   ) {}
 
   /**
+   * Auto-generate a unique vendorId in format VND-XXXX
+   * Finds the highest existing sequential vendor ID and increments from there
+   * Ignores timestamp-based IDs (more than 6 digits) to maintain proper sequencing
+   */
+  private async generateVendorId(): Promise<string> {
+    // Find all vendors and extract the highest numeric ID
+    const vendors = await this.prisma.vendor.findMany({
+      select: { vendorId: true },
+      where: {
+        vendorId: { startsWith: 'VND-' }
+      }
+    });
+
+    let maxNum = 0;
+    for (const vendor of vendors) {
+      // Match VND- followed by 1-6 digits (sequential IDs, not timestamps)
+      const match = vendor.vendorId.match(/^VND-0*(\d{1,6})$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        // Only consider numbers up to 999999 (sequential IDs, not timestamps)
+        if (num <= 999999 && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+
+    const nextNum = maxNum + 1;
+    return `VND-${String(nextNum).padStart(4, '0')}`;
+  }
+
+  /**
    * Get the review frequency for a tier using org-level config
    */
   private async getFrequencyForTier(organizationId: string, tier: string): Promise<string> {
@@ -140,10 +171,16 @@ export class VendorsService {
   }
 
   async create(createVendorDto: CreateVendorDto, userId: string) {
-    // Auto-set review frequency based on tier if not provided
+    // Auto-generate vendorId if not provided
+    const vendorId = createVendorDto.vendorId || await this.generateVendorId();
+    
+    // Set defaults for category and tier if not provided
+    const category = createVendorDto.category || 'software_vendor';
     const tier = createVendorDto.tier || 'tier_3';
+    
+    // Auto-set review frequency based on tier if not provided
     const reviewFrequency = createVendorDto.reviewFrequency || 
-      await this.getFrequencyForTier(createVendorDto.organizationId, tier);
+      await this.getFrequencyForTier(createVendorDto.organizationId!, tier);
     
     // Calculate next review due date
     const nextReviewDue = calculateNextReviewDate(null, reviewFrequency);
@@ -151,6 +188,9 @@ export class VendorsService {
     const vendor = await this.prisma.vendor.create({
       data: {
         ...createVendorDto,
+        vendorId,
+        category,
+        tier,
         reviewFrequency,
         nextReviewDue,
         createdBy: userId,
@@ -201,20 +241,25 @@ export class VendorsService {
 
     where.deletedAt = null;
 
-    return this.prisma.vendor.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
-            assessments: true,
-            contracts: true,
+    const [data, total] = await Promise.all([
+      this.prisma.vendor.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              assessments: true,
+              contracts: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.vendor.count({ where }),
+    ]);
+
+    return { data, total };
   }
 
   async findOne(id: string) {

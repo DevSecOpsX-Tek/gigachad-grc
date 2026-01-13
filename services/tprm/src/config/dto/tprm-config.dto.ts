@@ -88,6 +88,30 @@ export class ContractSettingsDto {
 }
 
 /**
+ * Feature settings - controls which TPRM features are enabled
+ * Note: Disabling a feature hides it from the UI but preserves all data
+ */
+export class FeatureSettingsDto {
+  @IsOptional()
+  enableSecurityScanning?: boolean;
+
+  @IsOptional()
+  enableRiskAssessmentWizard?: boolean;
+
+  @IsOptional()
+  enableSubdomainSpider?: boolean;
+
+  @IsOptional()
+  enableVendorPortal?: boolean;
+
+  @IsOptional()
+  enableContractManagement?: boolean;
+
+  @IsOptional()
+  enableQuestionnaireAutomation?: boolean;
+}
+
+/**
  * Full TPRM configuration response
  */
 export class TprmConfigurationResponseDto {
@@ -98,6 +122,7 @@ export class TprmConfigurationResponseDto {
   riskThresholds: RiskThresholdsDto;
   assessmentSettings: AssessmentSettingsDto;
   contractSettings: ContractSettingsDto;
+  featureSettings: FeatureSettingsDto;
   createdAt: Date;
   updatedAt: Date;
   updatedBy?: string;
@@ -134,5 +159,11 @@ export class UpdateTprmConfigurationDto {
   @ValidateNested()
   @Type(() => ContractSettingsDto)
   contractSettings?: ContractSettingsDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => FeatureSettingsDto)
+  featureSettings?: FeatureSettingsDto;
 }
 

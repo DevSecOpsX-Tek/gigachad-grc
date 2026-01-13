@@ -176,7 +176,7 @@ export class ConfigFilesController {
     );
   }
 
-  @Get(':path(*)')
+  @Get(':path')
   @ApiOperation({ summary: 'Get a specific config file' })
   @ApiParam({ name: 'path', description: 'File path (e.g., controls/main.tf)' })
   @ApiResponse({
@@ -220,7 +220,7 @@ export class ConfigFilesController {
     );
   }
 
-  @Put(':path(*)')
+  @Put(':path')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update an existing config file' })
   @ApiParam({ name: 'path', description: 'File path' })
@@ -247,7 +247,7 @@ export class ConfigFilesController {
     );
   }
 
-  @Delete(':path(*)')
+  @Delete(':path')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a config file' })
   @ApiParam({ name: 'path', description: 'File path' })
@@ -313,7 +313,7 @@ export class ConfigFilesController {
     );
   }
 
-  @Get(':path(*)/versions')
+  @Get(':path/versions')
   @ApiOperation({ summary: 'Get version history for a file' })
   @ApiParam({ name: 'path', description: 'File path' })
   @ApiResponse({

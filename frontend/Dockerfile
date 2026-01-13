@@ -21,7 +21,8 @@ COPY frontend/ ./
 
 # Build-time environment variables
 # These are baked into the static build
-ARG VITE_API_URL=http://localhost:3001
+# Empty API URL means requests go to the same origin (nginx) which proxies them
+ARG VITE_API_URL=
 ARG VITE_ENABLE_AI_MODULE=true
 
 ENV VITE_API_URL=$VITE_API_URL

@@ -2536,6 +2536,18 @@ model TprmConfiguration {
   //   autoRenewNotification: true,
   // }
 
+  // Feature Settings - controls which TPRM features are enabled
+  // Note: Disabling a feature hides it from the UI but preserves all data
+  featureSettings Json @default("{\"enableSecurityScanning\":true,\"enableRiskAssessmentWizard\":true,\"enableSubdomainSpider\":true,\"enableVendorPortal\":true,\"enableContractManagement\":true,\"enableQuestionnaireAutomation\":true}") @map("feature_settings")
+  // {
+  //   enableSecurityScanning: true,
+  //   enableRiskAssessmentWizard: true,
+  //   enableSubdomainSpider: true,
+  //   enableVendorPortal: true,
+  //   enableContractManagement: true,
+  //   enableQuestionnaireAutomation: true,
+  // }
+
   // Audit Trail
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")

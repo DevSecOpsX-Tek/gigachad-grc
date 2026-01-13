@@ -9,13 +9,17 @@ import {
   CheckCircleIcon,
   SparklesIcon,
   DocumentTextIcon,
+  ShieldExclamationIcon,
+  GlobeAltIcon,
 } from '@heroicons/react/24/outline';
-import { vendorsApi } from '../lib/api';
+import { vendorsApi, tprmConfigApi, TprmFeatureSettings } from '../lib/api';
 import { Vendor } from '../lib/apiTypes';
 import { Button } from '@/components/Button';
 import { SkeletonDetailHeader, SkeletonDetailSection } from '@/components/Skeleton';
 import { ConfirmModal } from '@/components/Modal';
 import { SOC2AnalysisPanel } from '@/components/vendor/SOC2AnalysisPanel';
+import { VendorRiskAssessmentWizard } from '@/components/vendor/VendorRiskAssessmentWizard';
+import { VendorSecurityScanPanel } from '@/components/vendor/VendorSecurityScanPanel';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 
@@ -36,6 +40,16 @@ const TIER_LABELS: Record<string, string> = {
   tier_4: 'Tier 4 (Low)',
 };
 
+// Default feature settings (all enabled)
+const DEFAULT_FEATURE_SETTINGS: TprmFeatureSettings = {
+  enableSecurityScanning: true,
+  enableRiskAssessmentWizard: true,
+  enableSubdomainSpider: true,
+  enableVendorPortal: true,
+  enableContractManagement: true,
+  enableQuestionnaireAutomation: true,
+};
+
 export default function VendorDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -43,6 +57,24 @@ export default function VendorDetail() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRiskAssessment, setShowRiskAssessment] = useState(false);
+  const [featureSettings, setFeatureSettings] = useState<TprmFeatureSettings>(DEFAULT_FEATURE_SETTINGS);
+
+  // Fetch TPRM configuration for feature settings
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await tprmConfigApi.get();
+        if (response.data?.featureSettings) {
+          setFeatureSettings(response.data.featureSettings);
+        }
+      } catch (err) {
+        // Use defaults if config fetch fails
+        console.warn('Failed to fetch TPRM config, using defaults');
+      }
+    };
+    fetchConfig();
+  }, []);
 
   useEffect(() => {
     if (id && id !== 'new') {
@@ -129,6 +161,15 @@ export default function VendorDetail() {
 
         {id !== 'new' && (
           <div className="flex items-center gap-2">
+            {featureSettings.enableRiskAssessmentWizard !== false && (
+              <Button
+                variant="outline"
+                onClick={() => setShowRiskAssessment(true)}
+                leftIcon={<ShieldExclamationIcon className="w-5 h-5" />}
+              >
+                Risk Assessment
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => setEditing(!editing)}
@@ -155,7 +196,21 @@ export default function VendorDetail() {
           onCancel={() => id === 'new' ? navigate('/vendors') : setEditing(false)}
         />
       ) : (
-        <VendorView vendor={vendor!} />
+        <VendorView vendor={vendor!} onRefresh={fetchVendor} featureSettings={featureSettings} />
+      )}
+
+      {/* Risk Assessment Wizard Modal */}
+      {showRiskAssessment && vendor && (
+        <VendorRiskAssessmentWizard
+          vendorId={vendor.id}
+          vendorName={vendor.name}
+          onClose={() => setShowRiskAssessment(false)}
+          onComplete={(result) => {
+            setShowRiskAssessment(false);
+            toast.success(`Risk assessment complete: ${result.riskLevel} risk`);
+            fetchVendor();
+          }}
+        />
       )}
 
       {/* Delete Confirmation Modal */}
@@ -384,7 +439,7 @@ function VendorForm({
   );
 }
 
-function VendorView({ vendor }: { vendor: Vendor }) {
+function VendorView({ vendor, onRefresh, featureSettings }: { vendor: Vendor; onRefresh?: () => void; featureSettings: TprmFeatureSettings }) {
   const [showSOC2Panel, setShowSOC2Panel] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{ id: string; title: string } | null>(null);
 
@@ -393,6 +448,7 @@ function VendorView({ vendor }: { vendor: Vendor }) {
     nextReviewDue?: string;
     lastReviewedAt?: string;
     reviewFrequency?: string;
+    website?: string;
     documents?: Array<{ id: string; title: string; documentType: string }>;
   };
 
@@ -576,6 +632,20 @@ function VendorView({ vendor }: { vendor: Vendor }) {
             toast.success('Assessment created from analysis');
             setShowSOC2Panel(false);
           }}
+        />
+      )}
+
+      {/* Security Scan Panel - conditionally shown based on feature settings */}
+      {featureSettings.enableSecurityScanning !== false && (
+        <VendorSecurityScanPanel
+          vendorId={vendor.id}
+          vendorName={vendor.name}
+          vendorWebsite={extendedVendor.website}
+          onScanComplete={() => {
+            toast.success('Security scan complete');
+            onRefresh?.();
+          }}
+          showSubdomains={featureSettings.enableSubdomainSpider !== false}
         />
       )}
 

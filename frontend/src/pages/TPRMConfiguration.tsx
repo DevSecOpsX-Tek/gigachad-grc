@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tprmConfigApi, TprmConfiguration, TprmConfigReferenceData, VendorCategoryConfig } from '../lib/api';
+import { tprmConfigApi, TprmConfiguration, TprmConfigReferenceData, VendorCategoryConfig, TprmFeatureSettings } from '../lib/api';
 import {
   ClockIcon,
   TagIcon,
@@ -8,10 +8,11 @@ import {
   ArrowPathIcon,
   Cog6ToothIcon,
   ShieldCheckIcon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-type ConfigTab = 'tiers' | 'categories' | 'assessments' | 'contracts';
+type ConfigTab = 'tiers' | 'categories' | 'assessments' | 'contracts' | 'features';
 
 export default function TPRMConfiguration() {
   const [activeTab, setActiveTab] = useState<ConfigTab>('tiers');
@@ -70,6 +71,7 @@ export default function TPRMConfiguration() {
     { key: 'categories' as ConfigTab, label: 'Vendor Categories', icon: TagIcon },
     { key: 'assessments' as ConfigTab, label: 'Assessment Settings', icon: DocumentTextIcon },
     { key: 'contracts' as ConfigTab, label: 'Contract Settings', icon: ShieldCheckIcon },
+    { key: 'features' as ConfigTab, label: 'Feature Settings', icon: AdjustmentsHorizontalIcon },
   ];
 
   if (isLoading) {
@@ -164,6 +166,12 @@ export default function TPRMConfiguration() {
         )}
         {activeTab === 'contracts' && config && (
           <ContractSettingsTab
+            config={config}
+            onUpdate={(data) => updateMutation.mutate(data)}
+          />
+        )}
+        {activeTab === 'features' && config && (
+          <FeatureSettingsTab
             config={config}
             onUpdate={(data) => updateMutation.mutate(data)}
           />
@@ -712,6 +720,121 @@ function ContractSettingsTab({
             className="rounded border-surface-600"
           />
         </label>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// Feature Settings Tab
+// ============================================
+
+function FeatureSettingsTab({
+  config,
+  onUpdate,
+}: {
+  config: TprmConfiguration;
+  onUpdate: (data: Partial<TprmConfiguration>) => void;
+}) {
+  const [settings, setSettings] = useState<TprmFeatureSettings>(config.featureSettings || {});
+
+  useEffect(() => {
+    setSettings(config.featureSettings || {});
+  }, [config.featureSettings]);
+
+  const handleChange = (key: keyof TprmFeatureSettings, value: boolean) => {
+    const updated = { ...settings, [key]: value };
+    setSettings(updated);
+    onUpdate({ featureSettings: updated });
+  };
+
+  const features = [
+    {
+      key: 'enableSecurityScanning' as const,
+      label: 'Security Scanning',
+      description: 'Enable automated security scanning of vendor websites to assess SSL, headers, DNS security, and compliance indicators.',
+      warning: 'Disabling this will hide the security scan panel from vendor detail pages. Existing scan data will be preserved.',
+    },
+    {
+      key: 'enableRiskAssessmentWizard' as const,
+      label: 'Risk Assessment Wizard',
+      description: 'Enable the guided risk assessment wizard for evaluating vendor risk factors.',
+      warning: 'Disabling this will hide the risk assessment wizard. Existing assessments will be preserved.',
+    },
+    {
+      key: 'enableSubdomainSpider' as const,
+      label: 'Subdomain Spider',
+      description: 'Enable subdomain discovery and page crawling within security scans.',
+      warning: 'Disabling this will hide subdomain data from scan results. Existing subdomain data will be preserved.',
+    },
+    {
+      key: 'enableVendorPortal' as const,
+      label: 'Vendor Portal',
+      description: 'Enable the external vendor portal for vendors to submit questionnaires and documents.',
+      warning: 'Disabling this will prevent vendors from accessing their portal. Portal data will be preserved.',
+    },
+    {
+      key: 'enableContractManagement' as const,
+      label: 'Contract Management',
+      description: 'Enable contract tracking, expiration alerts, and document management for vendor contracts.',
+      warning: 'Disabling this will hide contract features. Existing contracts will be preserved.',
+    },
+    {
+      key: 'enableQuestionnaireAutomation' as const,
+      label: 'Questionnaire Automation',
+      description: 'Enable automated questionnaire workflows and reminders for vendor assessments.',
+      warning: 'Disabling this will stop automated questionnaire workflows. Questionnaire data will be preserved.',
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-white mb-2">Feature Settings</h3>
+        <p className="text-surface-400 text-sm">
+          Enable or disable TPRM features for your organization. Disabling a feature hides it from the UI 
+          but <span className="text-brand-400 font-medium">preserves all existing data</span>. If you re-enable a feature, 
+          all previous data will still be available.
+        </p>
+      </div>
+
+      <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+        <p className="text-blue-400 text-sm">
+          <strong>Note:</strong> Feature toggles only affect UI visibility. No data is deleted when a feature is disabled. 
+          This allows administrators to temporarily hide features without losing historical data.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {features.map(feature => (
+          <div key={feature.key} className="p-4 bg-surface-700/50 rounded-lg">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-1">
+                  <p className="text-white font-medium">{feature.label}</p>
+                  {settings[feature.key] === false && (
+                    <span className="px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-400 rounded-full">
+                      Disabled
+                    </span>
+                  )}
+                </div>
+                <p className="text-surface-400 text-sm mb-2">{feature.description}</p>
+                {settings[feature.key] === false && (
+                  <p className="text-surface-500 text-xs italic">{feature.warning}</p>
+                )}
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings[feature.key] ?? true}
+                  onChange={e => handleChange(feature.key, e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-surface-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+              </label>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

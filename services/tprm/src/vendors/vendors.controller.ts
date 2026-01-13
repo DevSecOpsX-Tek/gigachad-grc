@@ -29,7 +29,12 @@ export class VendorsController {
     @Body() createVendorDto: CreateVendorDto,
     @CurrentUser() user: UserContext,
   ) {
-    return this.vendorsService.create(createVendorDto, user.userId);
+    // Inject organizationId from user context
+    const dtoWithOrg = {
+      ...createVendorDto,
+      organizationId: user.organizationId,
+    };
+    return this.vendorsService.create(dtoWithOrg, user.userId);
   }
 
   @Get()
