@@ -68,6 +68,7 @@ const DeveloperDocs = lazy(() => import('./pages/DeveloperDocs'));
 const Employees = lazy(() => import('./pages/Employees'));
 const EmployeeDetail = lazy(() => import('./pages/EmployeeDetail'));
 const EmployeeComplianceDashboard = lazy(() => import('./pages/EmployeeComplianceDashboard'));
+const SecurityTrainingDashboard = lazy(() => import('./pages/SecurityTrainingDashboard'));
 const CustomDashboards = lazy(() => import('./pages/CustomDashboards'));
 const MCPSettings = lazy(() => import('./pages/MCPSettings'));
 const WorkspaceList = lazy(() => import('./pages/WorkspaceList'));
@@ -286,6 +287,7 @@ export default function App() {
           <Route path="docs" element={<Suspense fallback={<PageLoader />}><DeveloperDocs /></Suspense>} />
           <Route path="people" element={<ModuleRoute module="people"><Suspense fallback={<PageLoader />}><Employees /></Suspense></ModuleRoute>} />
           <Route path="people/dashboard" element={<ModuleRoute module="people"><Suspense fallback={<PageLoader />}><EmployeeComplianceDashboard /></Suspense></ModuleRoute>} />
+          <Route path="people/training" element={<ModuleRoute module="people"><Suspense fallback={<PageLoader />}><SecurityTrainingDashboard /></Suspense></ModuleRoute>} />
           <Route path="people/:id" element={<ModuleRoute module="people"><Suspense fallback={<PageLoader />}><EmployeeDetail /></Suspense></ModuleRoute>} />
           
           {/* BC/DR Module */}
