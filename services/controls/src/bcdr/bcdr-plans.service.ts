@@ -9,6 +9,7 @@ import {
   PlanStatus,
 } from './dto/bcdr.dto';
 import { addMonths } from 'date-fns';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BCDRPlansService {
@@ -22,48 +23,48 @@ export class BCDRPlansService {
 
   async findAll(organizationId: string, filters: BCDRPlanFilterDto) {
     const { search, planType, status, page = 1, limit = 25 } = filters;
+    const offset = (page - 1) * limit;
 
-    const where: any = {
-      organizationId,
-      deletedAt: null,
-    };
+    // Build WHERE conditions dynamically
+    const whereClauses = [
+      `bp.organization_id = '${organizationId}'::uuid`,
+      `bp.deleted_at IS NULL`,
+    ];
 
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { planId: { contains: search, mode: 'insensitive' } },
-      ];
+      const escapedSearch = search.replace(/'/g, "''");
+      whereClauses.push(`(bp.title ILIKE '%${escapedSearch}%' OR bp.plan_id ILIKE '%${escapedSearch}%')`);
     }
 
     if (planType) {
-      where.planType = planType;
+      const escapedType = planType.replace(/'/g, "''");
+      whereClauses.push(`bp.plan_type = '${escapedType}'`);
     }
 
     if (status) {
-      where.status = status;
+      const escapedStatus = status.replace(/'/g, "''");
+      whereClauses.push(`bp.status = '${escapedStatus}'`);
     }
 
+    const whereClause = whereClauses.join(' AND ');
+
     const [plans, total] = await Promise.all([
-      this.prisma.$queryRaw<any[]>`
+      this.prisma.$queryRawUnsafe<any[]>(`
         SELECT bp.*, 
                u.display_name as owner_name,
                (SELECT COUNT(*) FROM bcdr.plan_controls WHERE plan_id = bp.id) as control_count
         FROM bcdr.bcdr_plans bp
-        LEFT JOIN shared.users u ON bp.owner_id = u.id
-        WHERE bp.organization_id = ${organizationId}
-          AND bp.deleted_at IS NULL
-          ${search ? this.prisma.$queryRaw`AND (bp.title ILIKE ${'%' + search + '%'} OR bp.plan_id ILIKE ${'%' + search + '%'})` : this.prisma.$queryRaw``}
-          ${planType ? this.prisma.$queryRaw`AND bp.plan_type = ${planType}::bcdr.plan_type` : this.prisma.$queryRaw``}
-          ${status ? this.prisma.$queryRaw`AND bp.status = ${status}::bcdr.plan_status` : this.prisma.$queryRaw``}
+        LEFT JOIN public.users u ON bp.owner_id::text = u.id
+        WHERE ${whereClause}
         ORDER BY bp.updated_at DESC
-        LIMIT ${limit} OFFSET ${(page - 1) * limit}
-      `,
-      this.prisma.$queryRaw<[{ count: bigint }]>`
+        LIMIT ${limit} OFFSET ${offset}
+      `),
+      this.prisma.$queryRawUnsafe<[{ count: bigint }]>(`
         SELECT COUNT(*) as count
         FROM bcdr.bcdr_plans
-        WHERE organization_id = ${organizationId}
+        WHERE organization_id = '${organizationId}'::uuid
           AND deleted_at IS NULL
-      `,
+      `),
     ]);
 
     return {
@@ -84,7 +85,7 @@ export class BCDRPlansService {
       LEFT JOIN shared.users u ON bp.owner_id = u.id
       LEFT JOIN shared.users a ON bp.approver_id = a.id
       WHERE bp.id = ${id}::uuid
-        AND bp.organization_id = ${organizationId}
+        AND bp.organization_id = ${organizationId}::uuid
         AND bp.deleted_at IS NULL
     `;
 
@@ -414,7 +415,7 @@ export class BCDRPlansService {
         COUNT(*) FILTER (WHERE next_review_due < NOW()) as overdue_review_count,
         COUNT(*) FILTER (WHERE expiry_date < NOW() AND status = 'published') as expired_count
       FROM bcdr.bcdr_plans
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = ${organizationId}::uuid
         AND deleted_at IS NULL
     `;
 

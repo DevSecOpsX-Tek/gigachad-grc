@@ -52,7 +52,8 @@ export class AuditsController {
     return this.auditsService.findAll(organizationId, {
       status,
       auditType,
-      isExternal: isExternal === 'true',
+      // Only set isExternal if the query param is explicitly provided
+      isExternal: isExternal !== undefined ? isExternal === 'true' : undefined,
     });
   }
 

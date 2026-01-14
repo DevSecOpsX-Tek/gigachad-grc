@@ -36,6 +36,12 @@ export interface SeedResult {
     assets: number;
     integrations: number;
     audits: number;
+    auditFindings: number;
+    auditLogs: number;
+    bcdrProcesses: number;
+    bcdrPlans: number;
+    drTests: number;
+    permissionGroups: number;
   };
   totalRecords: number;
 }
@@ -171,6 +177,12 @@ export class SeedDataService {
         assets: 0,
         integrations: 0,
         audits: 0,
+        auditFindings: 0,
+        auditLogs: 0,
+        bcdrProcesses: 0,
+        bcdrPlans: 0,
+        drTests: 0,
+        permissionGroups: 0,
       },
       totalRecords: 0,
     };
@@ -225,6 +237,24 @@ export class SeedDataService {
 
       // Create audits
       result.recordsCreated.audits = await this.seedAudits(organizationId, userId);
+
+      // Create audit findings for each audit
+      result.recordsCreated.auditFindings = await this.seedAuditFindings(organizationId, userId);
+
+      // Create audit log entries for activity feed
+      result.recordsCreated.auditLogs = await this.seedAuditLogEntries(organizationId, userId);
+
+      // Create BC/DR data
+      const bcdrResult = await this.seedBCDRData(organizationId, userId);
+      result.recordsCreated.bcdrProcesses = bcdrResult.processes;
+      result.recordsCreated.bcdrPlans = bcdrResult.plans;
+      result.recordsCreated.drTests = bcdrResult.tests;
+
+      // Create permission groups
+      result.recordsCreated.permissionGroups = await this.seedPermissionGroups(organizationId);
+
+      // Create trust configuration
+      await this.seedTrustConfiguration(organizationId);
 
       // Mark demo data as loaded
       await this.prisma.organization.update({
@@ -896,6 +926,330 @@ export class SeedDataService {
     }
     
     return count;
+  }
+
+  private async seedAuditFindings(organizationId: string, userId: string): Promise<number> {
+    let count = 0;
+    
+    // Get all audits for this organization
+    const audits = await this.prisma.audit.findMany({
+      where: { organizationId },
+      select: { id: true, name: true },
+    });
+    
+    if (audits.length === 0) return 0;
+    
+    const findingSeverities = ['critical', 'high', 'medium', 'low', 'observation'];
+    const findingStatuses = ['open', 'acknowledged', 'remediation_planned', 'remediation_in_progress', 'resolved'];
+    const findingCategories = ['control_deficiency', 'documentation_gap', 'process_issue', 'compliance_gap'];
+    
+    const findingTemplates = [
+      { title: 'Access controls not properly documented', description: 'Access control procedures lack formal documentation and approval workflows.' },
+      { title: 'Encryption key rotation not implemented', description: 'Cryptographic keys are not rotated according to policy requirements.' },
+      { title: 'Vulnerability scanning gaps', description: 'Critical systems are not included in the vulnerability scanning scope.' },
+      { title: 'Incident response testing overdue', description: 'Annual incident response tabletop exercise has not been conducted.' },
+      { title: 'Third-party risk assessment incomplete', description: 'Critical vendors have not undergone annual security assessments.' },
+      { title: 'Audit log retention insufficient', description: 'Audit logs are being purged before the required retention period.' },
+      { title: 'MFA not enforced for privileged accounts', description: 'Some administrator accounts can bypass multi-factor authentication.' },
+      { title: 'Change management exceptions undocumented', description: 'Emergency changes lack proper documentation and approval.' },
+    ];
+    
+    let findingCounter = 1;
+    for (const audit of audits) {
+      // Create 2-5 findings per audit
+      const numFindings = Math.floor(Math.random() * 4) + 2;
+      const selectedTemplates = findingTemplates.sort(() => 0.5 - Math.random()).slice(0, numFindings);
+      
+      for (const template of selectedTemplates) {
+        const severity = findingSeverities[Math.floor(Math.random() * findingSeverities.length)];
+        const status = findingStatuses[Math.floor(Math.random() * findingStatuses.length)];
+        const category = findingCategories[Math.floor(Math.random() * findingCategories.length)];
+        
+        await this.prisma.auditFinding.create({
+          data: {
+            organizationId,
+            auditId: audit.id,
+            findingNumber: `FND-${String(findingCounter++).padStart(3, '0')}`,
+            title: template.title,
+            description: template.description,
+            category,
+            severity,
+            status,
+            identifiedAt: this.randomDate(new Date('2024-09-01'), new Date('2025-01-15')),
+            targetDate: status !== 'resolved' ? this.randomDate(new Date('2025-02-01'), new Date('2025-06-30')) : null,
+            recommendation: `Implement corrective action to address ${template.title.toLowerCase()}.`,
+            identifiedBy: userId,
+          },
+        });
+        count++;
+      }
+    }
+    
+    this.logger.log(`Seeded ${count} audit findings`);
+    return count;
+  }
+
+  private async seedAuditLogEntries(organizationId: string, userId: string): Promise<number> {
+    let count = 0;
+    
+    const actions = ['created', 'updated', 'deleted', 'approved', 'rejected', 'uploaded', 'exported', 'synced'];
+    const entityTypes = ['control', 'evidence', 'policy', 'risk', 'vendor', 'framework', 'assessment', 'audit'];
+    
+    const logTemplates = [
+      { entityType: 'control', action: 'created', description: 'Created new control' },
+      { entityType: 'control', action: 'updated', description: 'Updated control implementation status' },
+      { entityType: 'evidence', action: 'uploaded', description: 'Uploaded new evidence document' },
+      { entityType: 'evidence', action: 'approved', description: 'Approved evidence for control' },
+      { entityType: 'policy', action: 'updated', description: 'Updated policy document' },
+      { entityType: 'policy', action: 'approved', description: 'Published policy after approval' },
+      { entityType: 'risk', action: 'created', description: 'Registered new risk' },
+      { entityType: 'risk', action: 'updated', description: 'Updated risk assessment' },
+      { entityType: 'vendor', action: 'created', description: 'Added new vendor to registry' },
+      { entityType: 'vendor', action: 'updated', description: 'Completed vendor risk assessment' },
+      { entityType: 'framework', action: 'synced', description: 'Synced framework requirements' },
+      { entityType: 'audit', action: 'created', description: 'Initiated new audit' },
+      { entityType: 'assessment', action: 'updated', description: 'Completed control assessment' },
+      { entityType: 'integration', action: 'synced', description: 'Synced data from integration' },
+    ];
+    
+    // Create 50 audit log entries spanning the last 30 days
+    for (let i = 0; i < 50; i++) {
+      const template = logTemplates[i % logTemplates.length];
+      const timestamp = this.randomDate(
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        new Date()
+      );
+      
+      await this.prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: template.action,
+          entityType: template.entityType,
+          entityId: `demo-${template.entityType}-${i}`,
+          entityName: `Demo ${template.entityType.charAt(0).toUpperCase() + template.entityType.slice(1)} ${i + 1}`,
+          description: template.description,
+          timestamp,
+          ipAddress: '192.168.1.1',
+          userAgent: 'GigaChad GRC Demo',
+        },
+      });
+      count++;
+    }
+    
+    this.logger.log(`Seeded ${count} audit log entries`);
+    return count;
+  }
+
+  private async seedBCDRData(organizationId: string, userId: string): Promise<{ processes: number; plans: number; tests: number }> {
+    const result = { processes: 0, plans: 0, tests: 0 };
+    
+    try {
+      // Seed Business Processes
+      const processData = [
+        { name: 'Customer Order Processing', criticalityTier: 'tier_1_critical', rtoHours: 4, rpoHours: 1, department: 'Operations' },
+        { name: 'Payment Processing', criticalityTier: 'tier_1_critical', rtoHours: 2, rpoHours: 0.5, department: 'Finance' },
+        { name: 'Customer Support Portal', criticalityTier: 'tier_2_essential', rtoHours: 8, rpoHours: 4, department: 'Support' },
+        { name: 'HR Onboarding System', criticalityTier: 'tier_3_important', rtoHours: 24, rpoHours: 12, department: 'Human Resources' },
+        { name: 'Marketing Website', criticalityTier: 'tier_3_important', rtoHours: 48, rpoHours: 24, department: 'Marketing' },
+        { name: 'Internal Wiki', criticalityTier: 'tier_4_deferrable', rtoHours: 72, rpoHours: 48, department: 'IT' },
+      ];
+      
+      const processIds: string[] = [];
+      let processCounter = 1;
+      
+      for (const proc of processData) {
+        const created = await this.prisma.$executeRaw`
+          INSERT INTO bcdr.business_processes (
+            id, organization_id, process_id, name, criticality_tier, 
+            rto_hours, rpo_hours, department, is_active, created_by, created_at, updated_at
+          ) VALUES (
+            gen_random_uuid(), ${organizationId}, ${'BP-' + String(processCounter++).padStart(3, '0')},
+            ${proc.name}, ${proc.criticalityTier}, ${proc.rtoHours}, ${proc.rpoHours},
+            ${proc.department}, true, ${userId}, NOW(), NOW()
+          )
+          ON CONFLICT DO NOTHING
+        `;
+        if (created > 0) result.processes++;
+      }
+      
+      // Seed BC/DR Plans
+      const planData = [
+        { title: 'Enterprise Business Continuity Plan', type: 'business_continuity', status: 'published' },
+        { title: 'IT Disaster Recovery Plan', type: 'disaster_recovery', status: 'published' },
+        { title: 'Crisis Communication Plan', type: 'crisis_communication', status: 'published' },
+        { title: 'Data Center Failover Plan', type: 'disaster_recovery', status: 'draft' },
+      ];
+      
+      let planCounter = 1;
+      for (const plan of planData) {
+        const created = await this.prisma.$executeRaw`
+          INSERT INTO bcdr.bcdr_plans (
+            id, organization_id, plan_id, title, plan_type, status,
+            created_by, created_at, updated_at
+          ) VALUES (
+            gen_random_uuid(), ${organizationId}, ${'BCDR-' + String(planCounter++).padStart(3, '0')},
+            ${plan.title}, ${plan.type}, ${plan.status},
+            ${userId}, NOW(), NOW()
+          )
+          ON CONFLICT DO NOTHING
+        `;
+        if (created > 0) result.plans++;
+      }
+      
+      // Seed DR Tests
+      const testData = [
+        { name: 'Q4 2024 Tabletop Exercise', testType: 'tabletop', status: 'completed', result: 'passed' },
+        { name: 'Q1 2025 Failover Test', testType: 'functional', status: 'completed', result: 'passed_with_issues' },
+        { name: 'Q2 2025 Full DR Test', testType: 'full', status: 'scheduled', result: null },
+      ];
+      
+      let testCounter = 1;
+      for (const test of testData) {
+        const created = await this.prisma.$executeRaw`
+          INSERT INTO bcdr.dr_tests (
+            id, organization_id, test_id, name, test_type, status, result,
+            scheduled_date, created_by, created_at, updated_at
+          ) VALUES (
+            gen_random_uuid(), ${organizationId}, ${'DRT-' + String(testCounter++).padStart(3, '0')},
+            ${test.name}, ${test.testType}, ${test.status}, ${test.result},
+            ${test.status === 'scheduled' ? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)},
+            ${userId}, NOW(), NOW()
+          )
+          ON CONFLICT DO NOTHING
+        `;
+        if (created > 0) result.tests++;
+      }
+      
+      this.logger.log(`Seeded BC/DR data: ${result.processes} processes, ${result.plans} plans, ${result.tests} tests`);
+    } catch (error) {
+      this.logger.warn(`BC/DR seeding skipped (tables may not exist): ${error}`);
+    }
+    
+    return result;
+  }
+
+  private async seedPermissionGroups(organizationId: string): Promise<number> {
+    let count = 0;
+    
+    const groups = [
+      {
+        name: 'Administrator',
+        description: 'Full access to all resources and actions',
+        permissions: [
+          { resource: 'controls', actions: ['read', 'create', 'update', 'delete', 'assign', 'approve', 'export'], scope: { ownership: 'all' } },
+          { resource: 'evidence', actions: ['read', 'create', 'update', 'delete', 'assign', 'approve', 'export'], scope: { ownership: 'all' } },
+          { resource: 'policies', actions: ['read', 'create', 'update', 'delete', 'assign', 'approve', 'export'], scope: { ownership: 'all' } },
+          { resource: 'frameworks', actions: ['read', 'create', 'update', 'delete', 'assign', 'approve', 'export'], scope: { ownership: 'all' } },
+          { resource: 'users', actions: ['read', 'create', 'update', 'delete', 'assign', 'approve', 'export'], scope: { ownership: 'all' } },
+          { resource: 'settings', actions: ['read', 'create', 'update', 'delete'], scope: { ownership: 'all' } },
+          { resource: 'dashboard', actions: ['read'], scope: { ownership: 'all' } },
+        ],
+        isSystem: true,
+      },
+      {
+        name: 'Compliance Manager',
+        description: 'Manage controls, evidence, and policies',
+        permissions: [
+          { resource: 'controls', actions: ['read', 'create', 'update', 'assign'], scope: { ownership: 'all' } },
+          { resource: 'evidence', actions: ['read', 'create', 'update', 'approve'], scope: { ownership: 'all' } },
+          { resource: 'policies', actions: ['read', 'create', 'update', 'approve'], scope: { ownership: 'all' } },
+          { resource: 'frameworks', actions: ['read'], scope: { ownership: 'all' } },
+          { resource: 'dashboard', actions: ['read'], scope: { ownership: 'all' } },
+        ],
+        isSystem: true,
+      },
+      {
+        name: 'Auditor',
+        description: 'Read-only access with ability to approve/reject evidence',
+        permissions: [
+          { resource: 'controls', actions: ['read'], scope: { ownership: 'all' } },
+          { resource: 'evidence', actions: ['read', 'approve'], scope: { ownership: 'all' } },
+          { resource: 'policies', actions: ['read'], scope: { ownership: 'all' } },
+          { resource: 'frameworks', actions: ['read'], scope: { ownership: 'all' } },
+          { resource: 'audit_logs', actions: ['read', 'export'], scope: { ownership: 'all' } },
+          { resource: 'dashboard', actions: ['read'], scope: { ownership: 'all' } },
+        ],
+        isSystem: true,
+      },
+      {
+        name: 'Control Owner',
+        description: 'Edit assigned controls and link evidence',
+        permissions: [
+          { resource: 'controls', actions: ['read', 'update'], scope: { ownership: 'assigned' } },
+          { resource: 'evidence', actions: ['read', 'create', 'update'], scope: { ownership: 'owned' } },
+          { resource: 'policies', actions: ['read'], scope: { ownership: 'all' } },
+          { resource: 'dashboard', actions: ['read'], scope: { ownership: 'all' } },
+        ],
+        isSystem: true,
+      },
+      {
+        name: 'Viewer',
+        description: 'Read-only access to non-sensitive data',
+        permissions: [
+          { resource: 'controls', actions: ['read'], scope: { ownership: 'all' } },
+          { resource: 'evidence', actions: ['read'], scope: { ownership: 'all' } },
+          { resource: 'policies', actions: ['read'], scope: { ownership: 'all' } },
+          { resource: 'frameworks', actions: ['read'], scope: { ownership: 'all' } },
+          { resource: 'dashboard', actions: ['read'], scope: { ownership: 'all' } },
+        ],
+        isSystem: true,
+      },
+    ];
+    
+    for (const group of groups) {
+      const existing = await this.prisma.permissionGroup.findFirst({
+        where: { organizationId, name: group.name },
+      });
+      
+      if (!existing) {
+        await this.prisma.permissionGroup.create({
+          data: {
+            organizationId,
+            name: group.name,
+            description: group.description,
+            permissions: group.permissions,
+            isSystem: group.isSystem,
+          },
+        });
+        count++;
+      }
+    }
+    
+    this.logger.log(`Seeded ${count} permission groups`);
+    return count;
+  }
+
+  private async seedTrustConfiguration(organizationId: string): Promise<void> {
+    try {
+      // Check if trust config already exists
+      const existing = await this.prisma.$queryRaw<any[]>`
+        SELECT id FROM trust.trust_config WHERE organization_id = ${organizationId} LIMIT 1
+      `;
+      
+      if (existing.length === 0) {
+        await this.prisma.$executeRaw`
+          INSERT INTO trust.trust_config (
+            id, organization_id,
+            sla_settings, assignment_settings, kb_settings, 
+            trust_center_settings, ai_settings,
+            created_at, updated_at
+          ) VALUES (
+            gen_random_uuid(), ${organizationId},
+            '{"urgent":{"targetHours":24,"warningHours":12},"high":{"targetHours":48,"warningHours":24},"medium":{"targetHours":120,"warningHours":72},"low":{"targetHours":240,"warningHours":168}}'::jsonb,
+            '{"enableAutoAssignment":true}'::jsonb,
+            '{"requireApprovalForNewEntries":false,"autoSuggestFromKB":true,"trackUsageMetrics":true}'::jsonb,
+            '{"enabled":true,"allowAnonymousAccess":false,"customDomain":null}'::jsonb,
+            '{"enabled":false,"autoCategorizationEnabled":false,"answerSuggestionsEnabled":false}'::jsonb,
+            NOW(), NOW()
+          )
+          ON CONFLICT DO NOTHING
+        `;
+        this.logger.log('Seeded trust configuration');
+      }
+    } catch (error) {
+      this.logger.warn(`Trust configuration seeding skipped (table may not exist): ${error}`);
+    }
   }
 
   private async createAuditLogEntry(

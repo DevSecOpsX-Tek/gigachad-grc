@@ -35,6 +35,19 @@ export class BCDRDashboardService {
   }
 
   async getSummary(organizationId: string) {
+    // Default empty stats for when queries fail (e.g., schema not fully migrated)
+    const emptyStats = { total: 0, tier_1_count: 0, tier_2_count: 0, tier_3_count: 0, tier_4_count: 0 };
+    
+    // Wrap each service call to handle missing tables gracefully
+    const safeCall = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await fn();
+      } catch (error) {
+        this.logger.warn(`BC/DR query failed (schema may not be fully migrated): ${error}`);
+        return fallback;
+      }
+    };
+
     const [
       processStats,
       planStats,
@@ -44,13 +57,13 @@ export class BCDRDashboardService {
       upcomingTests,
       overdueItems,
     ] = await Promise.all([
-      this.processesService.getStats(organizationId),
-      this.plansService.getStats(organizationId),
-      this.testsService.getStats(organizationId),
-      this.runbooksService.getStats(organizationId),
-      this.strategiesService.getStats(organizationId),
-      this.testsService.getUpcomingTests(organizationId, 30),
-      this.getOverdueItems(organizationId),
+      safeCall(() => this.processesService.getStats(organizationId), emptyStats),
+      safeCall(() => this.plansService.getStats(organizationId), emptyStats),
+      safeCall(() => this.testsService.getStats(organizationId), emptyStats),
+      safeCall(() => this.runbooksService.getStats(organizationId), emptyStats),
+      safeCall(() => this.strategiesService.getStats(organizationId), emptyStats),
+      safeCall(() => this.testsService.getUpcomingTests(organizationId, 30), []),
+      safeCall(() => this.getOverdueItems(organizationId), { plans: [], processes: [], findings: [], totalOverdue: 0 }),
     ]);
 
     return {
@@ -59,7 +72,7 @@ export class BCDRDashboardService {
       tests: this.convertBigIntToNumber(testStats),
       runbooks: this.convertBigIntToNumber(runbookStats),
       strategies: this.convertBigIntToNumber(strategyStats),
-      upcomingTests: this.convertBigIntToNumber(upcomingTests.slice(0, 5)),
+      upcomingTests: this.convertBigIntToNumber(Array.isArray(upcomingTests) ? upcomingTests.slice(0, 5) : []),
       overdueItems: this.convertBigIntToNumber(overdueItems),
       lastUpdated: new Date().toISOString(),
     };
@@ -70,7 +83,7 @@ export class BCDRDashboardService {
     const overduePlans = await this.prisma.$queryRaw<any[]>`
       SELECT id, plan_id, title, 'bcdr_plan' as entity_type, next_review_due as due_date
       FROM bcdr.bcdr_plans
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = ${organizationId}::uuid
         AND deleted_at IS NULL
         AND status = 'published'
         AND next_review_due < NOW()
@@ -82,7 +95,7 @@ export class BCDRDashboardService {
     const overdueProcesses = await this.prisma.$queryRaw<any[]>`
       SELECT id, process_id, name as title, 'business_process' as entity_type, next_review_due as due_date
       FROM bcdr.business_processes
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = ${organizationId}::uuid
         AND deleted_at IS NULL
         AND is_active = true
         AND next_review_due < NOW()
@@ -96,7 +109,7 @@ export class BCDRDashboardService {
              t.test_id, t.name as test_name
       FROM bcdr.dr_test_findings f
       JOIN bcdr.dr_tests t ON f.test_id = t.id
-      WHERE t.organization_id = ${organizationId}
+      WHERE t.organization_id = ${organizationId}::uuid
         AND f.remediation_required = true
         AND f.remediation_status NOT IN ('resolved', 'accepted')
         AND f.remediation_due_date < NOW()
@@ -120,7 +133,7 @@ export class BCDRDashboardService {
         AVG(rto_hours) as avg_rto,
         AVG(rpo_hours) as avg_rpo
       FROM bcdr.business_processes
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = ${organizationId}::uuid
         AND deleted_at IS NULL
         AND is_active = true
       GROUP BY criticality_tier
@@ -149,7 +162,7 @@ export class BCDRDashboardService {
         COUNT(*) FILTER (WHERE result = 'failed') as failed,
         AVG(actual_recovery_time_minutes) as avg_recovery_time
       FROM bcdr.dr_tests
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = ${organizationId}::uuid
         AND deleted_at IS NULL
         AND status = 'completed'
         AND actual_end_at >= NOW() - (${safeMonths} || ' months')::INTERVAL
@@ -173,7 +186,7 @@ export class BCDRDashboardService {
         END as rto_status
       FROM bcdr.business_processes bp
       LEFT JOIN bcdr.recovery_strategies rs ON bp.id = rs.process_id AND rs.deleted_at IS NULL
-      WHERE bp.organization_id = ${organizationId}
+      WHERE bp.organization_id = ${organizationId}::uuid
         AND bp.deleted_at IS NULL
         AND bp.is_active = true
         AND bp.rto_hours IS NOT NULL
@@ -204,7 +217,7 @@ export class BCDRDashboardService {
         CASE 
           WHEN EXISTS (
             SELECT 1 FROM bcdr.bcdr_plans p 
-            WHERE p.organization_id = ${organizationId}
+            WHERE p.organization_id = ${organizationId}::uuid
               AND p.deleted_at IS NULL
               AND p.status = 'published'
               AND bp.id = ANY(p.in_scope_processes)
@@ -213,13 +226,13 @@ export class BCDRDashboardService {
         END as has_plan,
         (
           SELECT COUNT(*) FROM bcdr.bcdr_plans p 
-          WHERE p.organization_id = ${organizationId}
+          WHERE p.organization_id = ${organizationId}::uuid
             AND p.deleted_at IS NULL
             AND p.status = 'published'
             AND bp.id = ANY(p.in_scope_processes)
         ) as plan_count
       FROM bcdr.business_processes bp
-      WHERE bp.organization_id = ${organizationId}
+      WHERE bp.organization_id = ${organizationId}::uuid
         AND bp.deleted_at IS NULL
         AND bp.is_active = true
       ORDER BY 
@@ -249,7 +262,7 @@ export class BCDRDashboardService {
         id, action, entity_type, entity_id, entity_name, 
         description, timestamp, user_email, user_name
       FROM controls.audit_logs
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = ${organizationId}::uuid
         AND entity_type IN ('business_process', 'bcdr_plan', 'dr_test', 'runbook', 'recovery_strategy', 'communication_plan')
       ORDER BY timestamp DESC
       LIMIT ${limit}
@@ -259,52 +272,79 @@ export class BCDRDashboardService {
   }
 
   async getMetrics(organizationId: string) {
-    // Calculate overall BC/DR readiness score
-    const [rtoAnalysis, planCoverage, testStats, processStats] = await Promise.all([
-      this.getRTORPOAnalysis(organizationId),
-      this.getPlanCoverage(organizationId),
-      this.testsService.getStats(organizationId),
-      this.processesService.getStats(organizationId),
-    ]);
+    try {
+      // Calculate overall BC/DR readiness score
+      const emptyStats = { total: 0, completed_count: 0, passed_count: 0, issues_count: 0, failed_count: 0, overdue_review_count: 0 };
+      const emptyRtoAnalysis = { analysis: [], summary: { compliant: 0, atRisk: 0, noStrategy: 0, total: 0 } };
+      const emptyPlanCoverage = { coverage: [], summary: { covered: 0, notCovered: 0, total: 0, coveragePercent: 0 } };
 
-    // Calculate readiness score (0-100)
-    const rtoScore = rtoAnalysis.summary.total > 0
-      ? (rtoAnalysis.summary.compliant / rtoAnalysis.summary.total) * 100
-      : 0;
+      const safeCall = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+        try {
+          return await fn();
+        } catch (error) {
+          this.logger.warn(`BC/DR metrics query failed: ${error}`);
+          return fallback;
+        }
+      };
 
-    const planScore = planCoverage.summary.coveragePercent || 0;
+      const [rtoAnalysis, planCoverage, testStats, processStats] = await Promise.all([
+        safeCall(() => this.getRTORPOAnalysis(organizationId), emptyRtoAnalysis),
+        safeCall(() => this.getPlanCoverage(organizationId), emptyPlanCoverage),
+        safeCall(() => this.testsService.getStats(organizationId), emptyStats),
+        safeCall(() => this.processesService.getStats(organizationId), emptyStats),
+      ]);
 
-    const testSuccessRate = testStats.completed_count > 0
-      ? ((Number(testStats.passed_count) + Number(testStats.issues_count)) / Number(testStats.completed_count)) * 100
-      : 0;
+      // Calculate readiness score (0-100)
+      const rtoScore = rtoAnalysis.summary?.total > 0
+        ? (rtoAnalysis.summary.compliant / rtoAnalysis.summary.total) * 100
+        : 0;
 
-    const overdueProcessPenalty = processStats.overdue_review_count > 0
-      ? Math.min(20, Number(processStats.overdue_review_count) * 2)
-      : 0;
+      const planScore = planCoverage.summary?.coveragePercent || 0;
 
-    const readinessScore = Math.max(0, Math.min(100, 
-      (rtoScore * 0.3 + planScore * 0.3 + testSuccessRate * 0.3) - overdueProcessPenalty
-    ));
+      const testSuccessRate = testStats.completed_count > 0
+        ? ((Number(testStats.passed_count || 0) + Number(testStats.issues_count || 0)) / Number(testStats.completed_count)) * 100
+        : 0;
 
-    return {
-      readinessScore: Math.round(readinessScore),
-      metrics: {
-        rtoCoverage: Math.round(rtoScore),
-        planCoverage: planScore,
-        testSuccessRate: Math.round(testSuccessRate),
-        overdueItems: Number(processStats.overdue_review_count || 0),
-      },
-      breakdown: {
-        rto: rtoAnalysis.summary,
-        plans: planCoverage.summary,
-        tests: {
-          total: Number(testStats.total || 0),
-          completed: Number(testStats.completed_count || 0),
-          passed: Number(testStats.passed_count || 0),
-          failed: Number(testStats.failed_count || 0),
+      const overdueProcessPenalty = processStats.overdue_review_count > 0
+        ? Math.min(20, Number(processStats.overdue_review_count) * 2)
+        : 0;
+
+      const readinessScore = Math.max(0, Math.min(100, 
+        (rtoScore * 0.3 + planScore * 0.3 + testSuccessRate * 0.3) - overdueProcessPenalty
+      ));
+
+      return {
+        readinessScore: Math.round(readinessScore),
+        metrics: {
+          rtoCoverage: Math.round(rtoScore),
+          planCoverage: planScore,
+          testSuccessRate: Math.round(testSuccessRate),
+          overdueItems: Number(processStats.overdue_review_count || 0),
         },
-      },
-    };
+        breakdown: {
+          rto: rtoAnalysis.summary || { total: 0, compliant: 0 },
+          plans: planCoverage.summary || { coveragePercent: 0 },
+          tests: {
+            total: Number(testStats.total || 0),
+            completed: Number(testStats.completed_count || 0),
+            passed: Number(testStats.passed_count || 0),
+            failed: Number(testStats.failed_count || 0),
+          },
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get BC/DR metrics: ${error}`);
+      // Return empty metrics on failure
+      return {
+        readinessScore: 0,
+        metrics: { rtoCoverage: 0, planCoverage: 0, testSuccessRate: 0, overdueItems: 0 },
+        breakdown: {
+          rto: { total: 0, compliant: 0 },
+          plans: { coveragePercent: 0 },
+          tests: { total: 0, completed: 0, passed: 0, failed: 0 },
+        },
+      };
+    }
   }
 }
 

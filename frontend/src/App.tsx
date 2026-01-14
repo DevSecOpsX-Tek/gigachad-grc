@@ -29,7 +29,7 @@ const TrustConfiguration = lazy(() => import('./pages/TrustConfiguration'));
 const AnswerTemplates = lazy(() => import('./pages/AnswerTemplates'));
 const TrustAnalytics = lazy(() => import('./pages/TrustAnalytics'));
 const AwarenessTraining = lazy(() => import('./pages/AwarenessTraining'));
-// SecurityAwarenessTraining is combined into AwarenessTraining
+const SecurityTrainingDashboard = lazy(() => import('./pages/SecurityTrainingDashboard'));
 const Assets = lazy(() => import('./pages/Assets'));
 const AssetDetail = lazy(() => import('./pages/AssetDetail'));
 const Integrations = lazy(() => import('./pages/Integrations'));
@@ -52,7 +52,7 @@ const KnowledgeBaseDetail = lazy(() => import('./pages/KnowledgeBaseDetail'));
 const TrustCenter = lazy(() => import('./pages/TrustCenter'));
 const TrustCenterSettings = lazy(() => import('./pages/TrustCenterSettings'));
 const Audits = lazy(() => import('./pages/Audits'));
-// AuditDetail will be combined into Audits detail view
+const AuditDetail = lazy(() => import('./pages/AuditDetail'));
 const AuditRequests = lazy(() => import('./pages/AuditRequests'));
 const AuditFindings = lazy(() => import('./pages/AuditFindings'));
 const AuditTemplates = lazy(() => import('./pages/AuditTemplates'));
@@ -248,6 +248,7 @@ export default function App() {
           
           {/* Audit Module */}
           <Route path="audits" element={<ModuleRoute module="audit"><Suspense fallback={<PageLoader />}><Audits /></Suspense></ModuleRoute>} />
+          <Route path="audits/:id" element={<ModuleRoute module="audit"><Suspense fallback={<PageLoader />}><AuditDetail /></Suspense></ModuleRoute>} />
           <Route path="audit-requests" element={<ModuleRoute module="audit"><Suspense fallback={<PageLoader />}><AuditRequests /></Suspense></ModuleRoute>} />
           <Route path="audit-findings" element={<ModuleRoute module="audit"><Suspense fallback={<PageLoader />}><AuditFindings /></Suspense></ModuleRoute>} />
           <Route path="audit-templates" element={<ModuleRoute module="audit"><Suspense fallback={<PageLoader />}><AuditTemplates /></Suspense></ModuleRoute>} />
@@ -279,7 +280,8 @@ export default function App() {
           <Route path="account" element={<Suspense fallback={<PageLoader />}><AccountSettings /></Suspense>} />
           {/* People Module */}
           <Route path="tools/awareness" element={<ModuleRoute module="people"><Suspense fallback={<PageLoader />}><AwarenessTraining /></Suspense></ModuleRoute>} />
-          {/* Security training is included in AwarenessTraining */}
+          <Route path="people/training" element={<ModuleRoute module="people"><Suspense fallback={<PageLoader />}><SecurityTrainingDashboard /></Suspense></ModuleRoute>} />
+          {/* /people/training shows enterprise-level training dashboard, /tools/awareness is for individual user training */}
           <Route path="users" element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
           <Route path="permissions" element={<Suspense fallback={<PageLoader />}><PermissionGroups /></Suspense>} />
           <Route path="help" element={<Suspense fallback={<PageLoader />}><HelpCenter /></Suspense>} />

@@ -132,7 +132,7 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
 
 export default function SecurityTrainingDashboard() {
   // Fetch organization-level training stats
-  const { data: orgStatsData, isLoading: isLoadingOrgStats, error: orgStatsError } = useQuery({
+  const { data: orgStatsData, isLoading: isLoadingOrgStats } = useQuery({
     queryKey: ['training-org-stats'],
     queryFn: async () => {
       const response = await trainingApi.getOrgStats();
@@ -143,7 +143,7 @@ export default function SecurityTrainingDashboard() {
   });
 
   // Fetch employee compliance data for overdue trainings
-  const { data: complianceData, isLoading: isLoadingCompliance, error: complianceError } = useQuery({
+  const { data: complianceData, isLoading: isLoadingCompliance } = useQuery({
     queryKey: ['employee-compliance-dashboard'],
     queryFn: async () => {
       const response = await employeeComplianceApi.getDashboard();
