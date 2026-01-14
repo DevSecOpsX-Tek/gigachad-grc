@@ -110,22 +110,28 @@ export default function AuditLog() {
     setSearchParams(new URLSearchParams());
   };
 
-  // Fetch audit logs
-  const { data, isLoading, refetch } = useQuery({
+  // Fetch audit logs with error handling
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['audit-logs', filters],
     queryFn: () => auditApi.list(filters).then((res) => res.data),
+    retry: 1,
+    staleTime: 30000,
   });
 
-  // Fetch filter options
+  // Fetch filter options with fallback
   const { data: filterOptions } = useQuery({
     queryKey: ['audit-filters'],
     queryFn: () => auditApi.getFilters().then((res) => res.data),
+    retry: 1,
+    staleTime: 60000,
   });
 
-  // Fetch stats
+  // Fetch stats with fallback
   const { data: stats } = useQuery({
     queryKey: ['audit-stats', filters.startDate, filters.endDate],
     queryFn: () => auditApi.getStats(filters.startDate, filters.endDate).then((res) => res.data),
+    retry: 1,
+    staleTime: 60000,
   });
 
   const handleExport = async () => {
@@ -361,13 +367,42 @@ export default function AuditLog() {
               {isLoading ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-surface-500">
-                    Loading...
+                    <div className="flex flex-col items-center gap-2">
+                      <ArrowPathIcon className="w-6 h-6 animate-spin" />
+                      <span>Loading audit logs...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-surface-500">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="text-red-400">Unable to load audit logs</div>
+                      <p className="text-sm">
+                        {error instanceof Error ? error.message : 'An unexpected error occurred.'}
+                      </p>
+                      <button
+                        onClick={() => refetch()}
+                        className="btn-secondary text-sm flex items-center gap-2"
+                      >
+                        <ArrowPathIcon className="w-4 h-4" />
+                        Try Again
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-surface-500">
-                    No audit logs found
+                    <div className="flex flex-col items-center gap-2">
+                      <ClockIcon className="w-8 h-8" />
+                      <span>No audit logs found</span>
+                      <p className="text-xs text-surface-600">
+                        {hasActiveFilters 
+                          ? 'Try adjusting your filters or clear them to see more results.' 
+                          : 'Actions performed in the platform will appear here.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (

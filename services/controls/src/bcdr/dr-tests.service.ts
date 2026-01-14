@@ -11,6 +11,7 @@ import {
   CreateTestFindingDto,
   TestStatus,
 } from './dto/bcdr.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class DRTestsService {
@@ -24,31 +25,54 @@ export class DRTestsService {
 
   async findAll(organizationId: string, filters: DRTestFilterDto) {
     const { search, testType, status, planId, page = 1, limit = 25 } = filters;
+    const offset = (page - 1) * limit;
 
-    const tests = await this.prisma.$queryRaw<any[]>`
+    // Build WHERE conditions dynamically
+    const whereClauses = [
+      `dt.organization_id = '${organizationId}'::uuid`,
+      `dt.deleted_at IS NULL`,
+    ];
+
+    if (search) {
+      const escapedSearch = search.replace(/'/g, "''");
+      whereClauses.push(`(dt.name ILIKE '%${escapedSearch}%' OR dt.test_id ILIKE '%${escapedSearch}%')`);
+    }
+
+    if (testType) {
+      const escapedType = testType.replace(/'/g, "''");
+      whereClauses.push(`dt.test_type = '${escapedType}'`);
+    }
+
+    if (status) {
+      const escapedStatus = status.replace(/'/g, "''");
+      whereClauses.push(`dt.status = '${escapedStatus}'`);
+    }
+
+    if (planId) {
+      whereClauses.push(`dt.plan_id = '${planId}'::uuid`);
+    }
+
+    const whereClause = whereClauses.join(' AND ');
+
+    const tests = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT dt.*, 
              u.display_name as coordinator_name,
              bp.title as plan_title,
              (SELECT COUNT(*) FROM bcdr.dr_test_findings WHERE test_id = dt.id) as finding_count
       FROM bcdr.dr_tests dt
-      LEFT JOIN shared.users u ON dt.coordinator_id = u.id
+      LEFT JOIN public.users u ON dt.coordinator_id::text = u.id
       LEFT JOIN bcdr.bcdr_plans bp ON dt.plan_id = bp.id
-      WHERE dt.organization_id = ${organizationId}
-        AND dt.deleted_at IS NULL
-        ${search ? this.prisma.$queryRaw`AND (dt.name ILIKE ${'%' + search + '%'} OR dt.test_id ILIKE ${'%' + search + '%'})` : this.prisma.$queryRaw``}
-        ${testType ? this.prisma.$queryRaw`AND dt.test_type = ${testType}::bcdr.test_type` : this.prisma.$queryRaw``}
-        ${status ? this.prisma.$queryRaw`AND dt.status = ${status}::bcdr.test_status` : this.prisma.$queryRaw``}
-        ${planId ? this.prisma.$queryRaw`AND dt.plan_id = ${planId}::uuid` : this.prisma.$queryRaw``}
+      WHERE ${whereClause}
       ORDER BY dt.scheduled_date DESC NULLS LAST, dt.created_at DESC
-      LIMIT ${limit} OFFSET ${(page - 1) * limit}
-    `;
+      LIMIT ${limit} OFFSET ${offset}
+    `);
 
-    const total = await this.prisma.$queryRaw<[{ count: bigint }]>`
+    const total = await this.prisma.$queryRawUnsafe<[{ count: bigint }]>(`
       SELECT COUNT(*) as count
       FROM bcdr.dr_tests
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = '${organizationId}'::uuid
         AND deleted_at IS NULL
-    `;
+    `);
 
     return {
       data: tests,
@@ -68,7 +92,7 @@ export class DRTestsService {
       LEFT JOIN shared.users u ON dt.coordinator_id = u.id
       LEFT JOIN bcdr.bcdr_plans bp ON dt.plan_id = bp.id
       WHERE dt.id = ${id}::uuid
-        AND dt.organization_id = ${organizationId}
+        AND dt.organization_id = ${organizationId}::uuid
         AND dt.deleted_at IS NULL
     `;
 
@@ -481,7 +505,7 @@ export class DRTestsService {
       SELECT dt.*, bp.title as plan_title
       FROM bcdr.dr_tests dt
       LEFT JOIN bcdr.bcdr_plans bp ON dt.plan_id = bp.id
-      WHERE dt.organization_id = ${organizationId}
+      WHERE dt.organization_id = ${organizationId}::uuid
         AND dt.deleted_at IS NULL
         AND dt.status IN ('planned', 'scheduled')
         AND dt.scheduled_date >= CURRENT_DATE
@@ -503,7 +527,7 @@ export class DRTestsService {
         COUNT(*) FILTER (WHERE result = 'passed_with_issues') as issues_count,
         AVG(actual_recovery_time_minutes) FILTER (WHERE result IS NOT NULL) as avg_recovery_time
       FROM bcdr.dr_tests
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = ${organizationId}::uuid
         AND deleted_at IS NULL
     `;
 
@@ -512,7 +536,7 @@ export class DRTestsService {
       SELECT COUNT(*) as count
       FROM bcdr.dr_test_findings f
       JOIN bcdr.dr_tests t ON f.test_id = t.id
-      WHERE t.organization_id = ${organizationId}
+      WHERE t.organization_id = ${organizationId}::uuid
         AND f.remediation_required = true
         AND f.remediation_status NOT IN ('resolved', 'accepted')
     `;

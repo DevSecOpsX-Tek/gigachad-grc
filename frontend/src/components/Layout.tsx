@@ -113,6 +113,7 @@ const navSections: NavSection[] = [
     items: [
       { name: 'Employee Compliance', href: '/people', icon: UsersIcon },
       { name: 'Compliance Dashboard', href: '/people/dashboard', icon: ChartBarIcon },
+      { name: 'Security Training', href: '/people/training', icon: AcademicCapIcon },
     ],
   },
   {

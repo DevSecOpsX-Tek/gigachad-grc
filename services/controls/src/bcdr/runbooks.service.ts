@@ -17,22 +17,41 @@ export class RunbooksService {
   async findAll(organizationId: string, filters?: { search?: string; category?: string; status?: RunbookStatus; processId?: string }) {
     const { search, category, status, processId } = filters || {};
 
-    const runbooks = await this.prisma.$queryRaw<any[]>`
+    // Build WHERE clauses dynamically
+    const whereClauses = [
+      `r.organization_id = '${organizationId}'::uuid`,
+      `r.deleted_at IS NULL`,
+    ];
+
+    if (search) {
+      const escapedSearch = search.replace(/'/g, "''");
+      whereClauses.push(`(r.title ILIKE '%${escapedSearch}%' OR r.runbook_id ILIKE '%${escapedSearch}%')`);
+    }
+    if (category) {
+      const escapedCategory = category.replace(/'/g, "''");
+      whereClauses.push(`r.category = '${escapedCategory}'`);
+    }
+    if (status) {
+      const escapedStatus = status.replace(/'/g, "''");
+      whereClauses.push(`r.status = '${escapedStatus}'::bcdr.runbook_status`);
+    }
+    if (processId) {
+      whereClauses.push(`r.process_id = '${processId}'::uuid`);
+    }
+
+    const whereClause = whereClauses.join(' AND ');
+
+    const runbooks = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT r.*, 
              u.display_name as owner_name,
              bp.name as process_name,
              (SELECT COUNT(*) FROM bcdr.runbook_steps WHERE runbook_id = r.id) as step_count
       FROM bcdr.runbooks r
-      LEFT JOIN shared.users u ON r.owner_id = u.id
+      LEFT JOIN public.users u ON r.owner_id::text = u.id
       LEFT JOIN bcdr.business_processes bp ON r.process_id = bp.id
-      WHERE r.organization_id = ${organizationId}
-        AND r.deleted_at IS NULL
-        ${search ? this.prisma.$queryRaw`AND (r.title ILIKE ${'%' + search + '%'} OR r.runbook_id ILIKE ${'%' + search + '%'})` : this.prisma.$queryRaw``}
-        ${category ? this.prisma.$queryRaw`AND r.category = ${category}` : this.prisma.$queryRaw``}
-        ${status ? this.prisma.$queryRaw`AND r.status = ${status}::bcdr.runbook_status` : this.prisma.$queryRaw``}
-        ${processId ? this.prisma.$queryRaw`AND r.process_id = ${processId}::uuid` : this.prisma.$queryRaw``}
+      WHERE ${whereClause}
       ORDER BY r.title ASC
-    `;
+    `);
 
     return runbooks;
   }
@@ -48,7 +67,7 @@ export class RunbooksService {
       LEFT JOIN bcdr.business_processes bp ON r.process_id = bp.id
       LEFT JOIN bcdr.recovery_strategies rs ON r.recovery_strategy_id = rs.id
       WHERE r.id = ${id}::uuid
-        AND r.organization_id = ${organizationId}
+        AND r.organization_id = ${organizationId}::uuid
         AND r.deleted_at IS NULL
     `;
 
@@ -392,7 +411,7 @@ export class RunbooksService {
         COUNT(*) FILTER (WHERE status = 'needs_review') as needs_review_count,
         COUNT(DISTINCT category) as category_count
       FROM bcdr.runbooks
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = ${organizationId}::uuid
         AND deleted_at IS NULL
     `;
 

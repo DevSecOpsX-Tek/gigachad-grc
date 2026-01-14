@@ -15,19 +15,35 @@ export class CommunicationPlansService {
   async findAll(organizationId: string, filters?: { search?: string; planType?: string; bcdrPlanId?: string }) {
     const { search, planType, bcdrPlanId } = filters || {};
 
-    const plans = await this.prisma.$queryRaw<any[]>`
+    // Build WHERE clauses dynamically
+    const whereClauses = [
+      `cp.organization_id = '${organizationId}'::uuid`,
+      `cp.deleted_at IS NULL`,
+    ];
+
+    if (search) {
+      const escapedSearch = search.replace(/'/g, "''");
+      whereClauses.push(`cp.name ILIKE '%${escapedSearch}%'`);
+    }
+    if (planType) {
+      const escapedPlanType = planType.replace(/'/g, "''");
+      whereClauses.push(`cp.plan_type = '${escapedPlanType}'`);
+    }
+    if (bcdrPlanId) {
+      whereClauses.push(`cp.bcdr_plan_id = '${bcdrPlanId}'::uuid`);
+    }
+
+    const whereClause = whereClauses.join(' AND ');
+
+    const plans = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT cp.*, 
              bp.title as bcdr_plan_title,
              (SELECT COUNT(*) FROM bcdr.communication_contacts WHERE communication_plan_id = cp.id) as contact_count
       FROM bcdr.communication_plans cp
       LEFT JOIN bcdr.bcdr_plans bp ON cp.bcdr_plan_id = bp.id
-      WHERE cp.organization_id = ${organizationId}
-        AND cp.deleted_at IS NULL
-        ${search ? this.prisma.$queryRaw`AND cp.name ILIKE ${'%' + search + '%'}` : this.prisma.$queryRaw``}
-        ${planType ? this.prisma.$queryRaw`AND cp.plan_type = ${planType}` : this.prisma.$queryRaw``}
-        ${bcdrPlanId ? this.prisma.$queryRaw`AND cp.bcdr_plan_id = ${bcdrPlanId}::uuid` : this.prisma.$queryRaw``}
+      WHERE ${whereClause}
       ORDER BY cp.name ASC
-    `;
+    `);
 
     return plans;
   }
@@ -38,7 +54,7 @@ export class CommunicationPlansService {
       FROM bcdr.communication_plans cp
       LEFT JOIN bcdr.bcdr_plans bp ON cp.bcdr_plan_id = bp.id
       WHERE cp.id = ${id}::uuid
-        AND cp.organization_id = ${organizationId}
+        AND cp.organization_id = ${organizationId}::uuid
         AND cp.deleted_at IS NULL
     `;
 
@@ -347,16 +363,26 @@ export class CommunicationPlansService {
 
   // Get contacts by escalation level
   async getContactsByEscalation(organizationId: string, planId?: string) {
-    const contacts = await this.prisma.$queryRaw<any[]>`
+    // Build WHERE clauses dynamically
+    const whereClauses = [
+      `cp.organization_id = '${organizationId}'::uuid`,
+      `cp.is_active = true`,
+      `c.is_active = true`,
+    ];
+
+    if (planId) {
+      whereClauses.push(`cp.id = '${planId}'::uuid`);
+    }
+
+    const whereClause = whereClauses.join(' AND ');
+
+    const contacts = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT c.*, cp.name as plan_name
       FROM bcdr.communication_contacts c
       JOIN bcdr.communication_plans cp ON c.communication_plan_id = cp.id
-      WHERE cp.organization_id = ${organizationId}
-        AND cp.is_active = true
-        AND c.is_active = true
-        ${planId ? this.prisma.$queryRaw`AND cp.id = ${planId}::uuid` : this.prisma.$queryRaw``}
+      WHERE ${whereClause}
       ORDER BY c.escalation_level ASC, c.sort_order ASC
-    `;
+    `);
 
     // Group by escalation level
     const grouped = contacts.reduce((acc: Record<number, any[]>, contact) => {

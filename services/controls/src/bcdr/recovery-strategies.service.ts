@@ -20,7 +20,7 @@ export class RecoveryStrategiesService {
              bp.process_id, bp.name as process_name
       FROM bcdr.recovery_strategies rs
       LEFT JOIN bcdr.business_processes bp ON rs.process_id = bp.id
-      WHERE rs.organization_id = ${organizationId}
+      WHERE rs.organization_id = ${organizationId}::uuid
         AND rs.deleted_at IS NULL
         ${search ? this.prisma.$queryRaw`AND rs.name ILIKE ${'%' + search + '%'}` : this.prisma.$queryRaw``}
         ${strategyType ? this.prisma.$queryRaw`AND rs.strategy_type = ${strategyType}` : this.prisma.$queryRaw``}
@@ -38,7 +38,7 @@ export class RecoveryStrategiesService {
       FROM bcdr.recovery_strategies rs
       LEFT JOIN bcdr.business_processes bp ON rs.process_id = bp.id
       WHERE rs.id = ${id}::uuid
-        AND rs.organization_id = ${organizationId}
+        AND rs.organization_id = ${organizationId}::uuid
         AND rs.deleted_at IS NULL
     `;
 
@@ -284,7 +284,7 @@ export class RecoveryStrategiesService {
         AVG(estimated_recovery_time_hours) as avg_recovery_time,
         COUNT(DISTINCT strategy_type) as strategy_type_count
       FROM bcdr.recovery_strategies
-      WHERE organization_id = ${organizationId}
+      WHERE organization_id = ${organizationId}::uuid
         AND deleted_at IS NULL
     `;
 
