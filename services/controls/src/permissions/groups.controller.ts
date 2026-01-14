@@ -21,10 +21,12 @@ import {
   Resource,
   Action,
 } from './dto/permission.dto';
+import { DevAuthGuard } from '../auth/dev-auth.guard';
 import { PermissionGuard } from '../auth/permission.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 
 @Controller('api/permissions')
+@UseGuards(DevAuthGuard)
 export class PermissionsController {
   constructor(
     private readonly groupsService: GroupsService,

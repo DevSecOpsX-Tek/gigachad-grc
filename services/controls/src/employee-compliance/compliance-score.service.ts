@@ -412,8 +412,14 @@ export class ComplianceScoreService {
   async getOrganizationMetrics(organizationId: string): Promise<{
     totalEmployees: number;
     averageScore: number;
-    scoreDistribution: { range: string; count: number }[];
-    issueBreakdown: { type: string; count: number }[];
+    scoreDistribution: { compliant: number; atRisk: number; nonCompliant: number };
+    issueBreakdown: { 
+      overdueTrainings: number; 
+      missingBackgroundChecks: number; 
+      pendingAttestations: number; 
+      mfaNotEnabled: number; 
+      nonCompliantDevices: number;
+    };
     complianceRate: number;
   }> {
     const employees = await this.prisma.correlatedEmployee.findMany({
@@ -432,8 +438,14 @@ export class ComplianceScoreService {
       return {
         totalEmployees: 0,
         averageScore: 0,
-        scoreDistribution: [],
-        issueBreakdown: [],
+        scoreDistribution: { compliant: 0, atRisk: 0, nonCompliant: 0 },
+        issueBreakdown: {
+          overdueTrainings: 0,
+          missingBackgroundChecks: 0,
+          pendingAttestations: 0,
+          mfaNotEnabled: 0,
+          nonCompliantDevices: 0,
+        },
         complianceRate: 0,
       };
     }
@@ -444,28 +456,38 @@ export class ComplianceScoreService {
       scores.reduce((sum, s) => sum + s, 0) / totalEmployees,
     );
 
-    // Score distribution
-    const scoreDistribution = [
-      { range: '90-100', count: scores.filter((s) => s >= 90).length },
-      { range: '80-89', count: scores.filter((s) => s >= 80 && s < 90).length },
-      { range: '70-79', count: scores.filter((s) => s >= 70 && s < 80).length },
-      { range: '60-69', count: scores.filter((s) => s >= 60 && s < 70).length },
-      { range: '<60', count: scores.filter((s) => s < 60).length },
-    ];
+    // Score distribution - grouped by compliance status
+    const scoreDistribution = {
+      compliant: scores.filter((s) => s >= 80).length,
+      atRisk: scores.filter((s) => s >= 60 && s < 80).length,
+      nonCompliant: scores.filter((s) => s < 60).length,
+    };
 
-    // Issue breakdown
-    const issueTypeCounts: Record<string, number> = {};
+    // Issue breakdown - count by issue type
+    const issueTypeCounts: Record<string, number> = {
+      training: 0,
+      background_check: 0,
+      attestation: 0,
+      mfa: 0,
+      device: 0,
+    };
+    
     for (const employee of employees) {
       const issues = (employee.complianceIssues as unknown as ComplianceIssue[]) || [];
       for (const issue of issues) {
-        issueTypeCounts[issue.type] = (issueTypeCounts[issue.type] || 0) + 1;
+        if (issueTypeCounts[issue.type] !== undefined) {
+          issueTypeCounts[issue.type]++;
+        }
       }
     }
 
-    const issueBreakdown = Object.entries(issueTypeCounts).map(([type, count]) => ({
-      type,
-      count,
-    }));
+    const issueBreakdown = {
+      overdueTrainings: issueTypeCounts.training,
+      missingBackgroundChecks: issueTypeCounts.background_check,
+      pendingAttestations: issueTypeCounts.attestation,
+      mfaNotEnabled: issueTypeCounts.mfa,
+      nonCompliantDevices: issueTypeCounts.device,
+    };
 
     // Compliance rate (employees with score >= 80)
     const compliantCount = scores.filter((s) => s >= 80).length;

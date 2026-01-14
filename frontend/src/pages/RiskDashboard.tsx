@@ -128,20 +128,29 @@ export default function RiskDashboard() {
         <div className="bg-white dark:bg-surface-800 rounded-xl border border-gray-200 dark:border-surface-700 p-6">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Risk Level Distribution</h2>
           <div className="space-y-4">
-            {['critical', 'high', 'medium', 'low'].map(level => {
-              const count = dashboard?.byRiskLevel?.find((r: any) => r.level === level)?.count || 0;
+            {[
+              { key: 'very_high', label: 'Critical' },
+              { key: 'high', label: 'High' },
+              { key: 'medium', label: 'Medium' },
+              { key: 'low', label: 'Low' },
+            ].map(({ key, label }) => {
+              // Support 'level', 'inherent_risk' field names and also 'critical' alias for 'very_high'
+              const count = dashboard?.byRiskLevel?.find((r: any) => 
+                r.level === key || r.inherent_risk === key || 
+                (key === 'very_high' && (r.level === 'critical' || r.inherent_risk === 'critical'))
+              )?.count || (dashboard?.byRiskLevel?.[key] as number) || 0;
               const total = dashboard?.totalRisks || 1;
               const percentage = Math.round((count / total) * 100);
               
               return (
-                <div key={level} className="space-y-2">
+                <div key={key} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-surface-300 capitalize">{level}</span>
+                    <span className="text-gray-600 dark:text-surface-300">{label}</span>
                     <span className="text-gray-900 dark:text-white font-medium">{count}</span>
                   </div>
                   <div className="h-2 bg-gray-200 dark:bg-surface-700 rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${getRiskLevelColor(level)} transition-all duration-500`}
+                      className={`h-full ${getRiskLevelColor(key === 'very_high' ? 'critical' : key)} transition-all duration-500`}
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
