@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { risksApi, assetsApi, controlsApi } from '../lib/api';
 import { RiskDetail as RiskDetailData } from '../lib/apiTypes';
 import RiskWorkflowPanel from '../components/risk/RiskWorkflowPanel';
+import RiskTasksPanel from '../components/risk/RiskTasksPanel';
 import EntityAuditHistory from '../components/EntityAuditHistory';
 import toast from 'react-hot-toast';
 import {
@@ -21,6 +22,7 @@ import {
   DollarSign,
   TrendingUp,
   Percent,
+  ClipboardList,
 } from 'lucide-react';
 
 // Using RiskDetail from apiTypes as RiskDetailData
@@ -53,7 +55,7 @@ export default function RiskDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'assets' | 'controls' | 'scenarios' | 'history'>('controls');
+  const [activeTab, setActiveTab] = useState<'assets' | 'controls' | 'scenarios' | 'tasks' | 'history'>('controls');
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTreatmentModal, setShowTreatmentModal] = useState(false);
   const [showLinkControlModal, setShowLinkControlModal] = useState(false);
@@ -499,6 +501,7 @@ export default function RiskDetail() {
             { key: 'controls', label: 'Controls', icon: Shield, count: risk?.controls?.length ?? 0 },
             { key: 'assets', label: 'Assets', icon: Server, count: risk?.assets?.length ?? 0 },
             { key: 'scenarios', label: 'Scenarios', icon: Target, count: risk?.scenarios?.length ?? 0 },
+            { key: 'tasks', label: 'Tasks', icon: ClipboardList, count: null },
             { key: 'history', label: 'History', icon: History, count: risk?.history?.length ?? 0 },
           ].map(tab => (
             <button
@@ -512,7 +515,9 @@ export default function RiskDetail() {
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
-              <span className="px-2 py-0.5 bg-surface-700 rounded text-xs">{tab.count}</span>
+              {tab.count !== null && (
+                <span className="px-2 py-0.5 bg-surface-700 rounded text-xs">{tab.count}</span>
+              )}
             </button>
           ))}
         </div>
@@ -673,6 +678,14 @@ export default function RiskDetail() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Tasks Tab */}
+          {activeTab === 'tasks' && (
+            <RiskTasksPanel 
+              riskId={id!} 
+              onTaskAction={() => queryClient.invalidateQueries({ queryKey: ['risks', id] })}
+            />
           )}
 
           {/* History Tab */}

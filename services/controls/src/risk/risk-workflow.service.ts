@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType, NotificationSeverity } from '../notifications/dto/notification.dto';
 import { calculateRiskLevel, Likelihood, Impact } from './dto/risk.dto';
+import { RiskWorkflowTasksService } from './risk-workflow-tasks.service';
 import {
   RiskLevel as PrismaRiskLevel,
   RiskTreatmentStatus as PrismaRiskTreatmentStatus,
@@ -186,6 +187,8 @@ export class RiskWorkflowService {
     private prisma: PrismaService,
     private auditService: AuditService,
     private notificationsService: NotificationsService,
+    @Inject(forwardRef(() => RiskWorkflowTasksService))
+    private riskWorkflowTasksService: RiskWorkflowTasksService,
   ) {}
 
   // ===========================================
@@ -318,6 +321,21 @@ export class RiskWorkflowService {
         entityId: riskId,
         severity: NotificationSeverity.INFO,
       });
+    }
+
+    // Auto-create task when risk is validated
+    if (dto.decision === 'approve' && dto.grcSmeId) {
+      try {
+        await this.riskWorkflowTasksService.createTaskForWorkflowTransition(
+          riskId,
+          organizationId,
+          'risk_validated',
+          dto.grcSmeId, // GRC SME will assign the assessor
+          userId,
+        );
+      } catch (error) {
+        this.logger.error(`Failed to auto-create task for risk validation: ${error.message}`);
+      }
     }
 
     return updated;
@@ -529,6 +547,19 @@ export class RiskWorkflowService {
         entityId: riskId,
         severity: NotificationSeverity.WARNING,
       });
+
+      // Auto-create task for GRC review
+      try {
+        await this.riskWorkflowTasksService.createTaskForWorkflowTransition(
+          riskId,
+          organizationId,
+          'assessment_submitted',
+          risk.grcSmeId,
+          userId,
+        );
+      } catch (error) {
+        this.logger.error(`Failed to auto-create task for assessment review: ${error.message}`);
+      }
     }
 
     return assessment;
@@ -610,6 +641,19 @@ export class RiskWorkflowService {
           entityId: riskId,
           severity: NotificationSeverity.WARNING,
         });
+
+        // Auto-create task for treatment decision
+        try {
+          await this.riskWorkflowTasksService.createTaskForWorkflowTransition(
+            riskId,
+            organizationId,
+            'assessment_approved',
+            risk.assessment.recommendedOwnerId,
+            userId,
+          );
+        } catch (error) {
+          this.logger.error(`Failed to auto-create task for treatment decision: ${error.message}`);
+        }
       }
 
       return { assessment, treatment };
@@ -932,6 +976,19 @@ export class RiskWorkflowService {
       severity: NotificationSeverity.ERROR,
     });
 
+    // Auto-create task for executive approval
+    try {
+      await this.riskWorkflowTasksService.createTaskForWorkflowTransition(
+        riskId,
+        organizationId,
+        'executive_approval_needed',
+        dto.executiveApproverId,
+        userId,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to auto-create task for executive approval: ${error.message}`);
+    }
+
     return treatment;
   }
 
@@ -1019,6 +1076,21 @@ export class RiskWorkflowService {
           entityId: riskId,
           severity: NotificationSeverity.SUCCESS,
         });
+
+        // Auto-create task for mitigation if mitigate was the decision
+        if (risk.treatment.treatmentDecision === TreatmentDecision.MITIGATE) {
+          try {
+            await this.riskWorkflowTasksService.createTaskForWorkflowTransition(
+              riskId,
+              organizationId,
+              'mitigation_started',
+              risk.riskOwnerId,
+              userId,
+            );
+          } catch (error) {
+            this.logger.error(`Failed to auto-create task for mitigation: ${error.message}`);
+          }
+        }
       }
 
       return treatment;

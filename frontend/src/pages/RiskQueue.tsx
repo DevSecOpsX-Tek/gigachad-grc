@@ -1,22 +1,63 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { risksApi } from '../lib/api';
+import { risksApi, riskTasksApi, RiskWorkflowTask } from '../lib/api';
+import { format, formatDistanceToNow, isPast } from 'date-fns';
+import toast from 'react-hot-toast';
 import {
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   UserIcon,
   ArrowRightIcon,
+  PlayIcon,
+  ClipboardDocumentListIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline';
 
-type QueueTab = 'assessments' | 'treatments' | 'approvals' | 'reviews';
+type QueueTab = 'tasks' | 'assessments' | 'treatments' | 'approvals' | 'reviews';
 
 export default function RiskQueue() {
-  const [activeTab, setActiveTab] = useState<QueueTab>('assessments');
+  const [activeTab, setActiveTab] = useState<QueueTab>('tasks');
+  const queryClient = useQueryClient();
 
   // Get current user ID from localStorage
   const userId = localStorage.getItem('userId') || '';
+
+  // Fetch user's assigned tasks
+  const { data: myTasksData } = useQuery({
+    queryKey: ['risk-tasks', 'my-tasks'],
+    queryFn: () => riskTasksApi.getMyTasks(),
+  });
+
+  // Fetch user's task stats
+  const { data: taskStats } = useQuery({
+    queryKey: ['risk-tasks', 'my-stats'],
+    queryFn: () => riskTasksApi.getMyStats(),
+  });
+
+  // Task mutations
+  const startTaskMutation = useMutation({
+    mutationFn: (taskId: string) => riskTasksApi.start(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['risk-tasks'] });
+      toast.success('Task started');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to start task');
+    },
+  });
+
+  const completeTaskMutation = useMutation({
+    mutationFn: (taskId: string) => riskTasksApi.complete(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['risk-tasks'] });
+      toast.success('Task completed');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to complete task');
+    },
+  });
 
   // Fetch risks where user is assigned as assessor (pending assessment)
   const { data: assessmentQueue } = useQuery({
@@ -66,7 +107,17 @@ export default function RiskQueue() {
     },
   });
 
+  const myTasks = myTasksData?.data?.tasks || [];
+  const stats = taskStats?.data || { pending: 0, inProgress: 0, overdue: 0, completedThisWeek: 0, total: 0 };
+
   const tabs = [
+    {
+      key: 'tasks' as QueueTab,
+      label: 'My Tasks',
+      count: stats.total,
+      icon: ClipboardDocumentListIcon,
+      color: 'text-brand-400',
+    },
     {
       key: 'assessments' as QueueTab,
       label: 'My Assessments',
@@ -151,7 +202,7 @@ export default function RiskQueue() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {tabs.map(tab => (
           <button
             key={tab.key}
@@ -181,56 +232,179 @@ export default function RiskQueue() {
           <h2 className="text-lg font-medium text-white">
             {tabs.find(t => t.key === activeTab)?.label}
           </h2>
+          {activeTab === 'tasks' && stats.overdue > 0 && (
+            <p className="text-red-400 text-sm mt-1">
+              {stats.overdue} overdue task{stats.overdue > 1 ? 's' : ''}
+            </p>
+          )}
         </div>
 
         <div className="divide-y divide-surface-700">
-          {getActiveQueue().length === 0 ? (
-            <div className="p-8 text-center">
-              <CheckCircleIcon className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-              <p className="text-surface-400">No items in this queue</p>
-              <p className="text-surface-500 text-sm mt-1">You're all caught up!</p>
-            </div>
-          ) : (
-            getActiveQueue().map((risk: any) => (
-              <div key={risk.id} className="p-4 hover:bg-surface-700/50 transition-colors">
-                <div className="flex items-center gap-4">
-                  {/* Risk Level Indicator */}
-                  <div className={`w-3 h-3 rounded-full ${getRiskLevelColor(risk.inherentRisk)}`} />
+          {/* Tasks Tab Content */}
+          {activeTab === 'tasks' && (
+            <>
+              {myTasks.length === 0 ? (
+                <div className="p-8 text-center">
+                  <CheckCircleIcon className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                  <p className="text-surface-400">No tasks assigned to you</p>
+                  <p className="text-surface-500 text-sm mt-1">You're all caught up!</p>
+                </div>
+              ) : (
+                myTasks.map((task: RiskWorkflowTask) => {
+                  const isOverdue = task.dueDate && isPast(new Date(task.dueDate));
+                  return (
+                    <div 
+                      key={task.id} 
+                      className={`p-4 hover:bg-surface-700/50 transition-colors ${
+                        isOverdue ? 'bg-red-900/10' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Status Icon */}
+                        <div className={`p-2 rounded-lg ${
+                          task.status === 'in_progress' ? 'bg-blue-500/20' : 'bg-amber-500/20'
+                        }`}>
+                          {task.status === 'in_progress' ? (
+                            <ClockIcon className="w-5 h-5 text-blue-400" />
+                          ) : (
+                            <ClipboardDocumentListIcon className="w-5 h-5 text-amber-400" />
+                          )}
+                        </div>
 
-                  {/* Risk Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-brand-400 font-mono text-sm">{risk.riskId}</span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${getRiskLevelColor(risk.inherentRisk)} text-white`}>
-                        {risk.inherentRisk}
-                      </span>
+                        {/* Task Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-brand-400 font-mono text-sm">
+                              {task.risk?.riskId}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                              task.status === 'in_progress' 
+                                ? 'bg-blue-500/20 text-blue-400' 
+                                : 'bg-amber-500/20 text-amber-400'
+                            }`}>
+                              {task.status.replace('_', ' ')}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                              task.priority === 'critical' ? 'bg-red-500/20 text-red-400' :
+                              task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                              task.priority === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                              'bg-gray-500/20 text-gray-400'
+                            }`}>
+                              {task.priority}
+                            </span>
+                            {isOverdue && (
+                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
+                                Overdue
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-white font-medium mt-1">{task.title}</p>
+                          <p className="text-surface-400 text-sm truncate">
+                            Risk: {task.risk?.title}
+                          </p>
+                          
+                          {/* Meta Info */}
+                          <div className="flex items-center gap-4 mt-2 text-xs text-surface-500">
+                            <span>Type: {task.taskType.replace('_', ' ')}</span>
+                            {task.dueDate && (
+                              <span className={isOverdue ? 'text-red-400 font-medium' : ''}>
+                                Due: {formatDistanceToNow(new Date(task.dueDate), { addSuffix: true })}
+                              </span>
+                            )}
+                            <span>Assigned: {format(new Date(task.assignedAt), 'MMM d')}</span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {task.status === 'pending' && (
+                            <button
+                              onClick={() => startTaskMutation.mutate(task.id)}
+                              disabled={startTaskMutation.isPending}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+                            >
+                              <PlayIcon className="w-4 h-4" />
+                              Start
+                            </button>
+                          )}
+                          {task.status === 'in_progress' && (
+                            <button
+                              onClick={() => completeTaskMutation.mutate(task.id)}
+                              disabled={completeTaskMutation.isPending}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 text-sm"
+                            >
+                              <CheckCircleIcon className="w-4 h-4" />
+                              Complete
+                            </button>
+                          )}
+                          <Link
+                            to={`/risks/${task.riskId}`}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-surface-700 text-white rounded-lg hover:bg-surface-600 text-sm"
+                          >
+                            View Risk
+                            <ArrowRightIcon className="w-4 h-4" />
+                          </Link>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-white font-medium mt-1 truncate">{risk.title}</p>
-                    <p className="text-surface-400 text-sm truncate">{risk.description}</p>
-                    
-                    {/* Meta Info */}
-                    <div className="flex items-center gap-4 mt-2 text-xs text-surface-500">
-                      <span>Category: {risk.category}</span>
-                      <span>Created: {new Date(risk.createdAt).toLocaleDateString()}</span>
-                      {risk.treatmentDueDate && (
-                        <span className="text-amber-400">
-                          Due: {new Date(risk.treatmentDueDate).toLocaleDateString()}
-                        </span>
-                      )}
+                  );
+                })
+              )}
+            </>
+          )}
+
+          {/* Other Tabs - Risk-based Queue */}
+          {activeTab !== 'tasks' && (
+            <>
+              {getActiveQueue().length === 0 ? (
+                <div className="p-8 text-center">
+                  <CheckCircleIcon className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                  <p className="text-surface-400">No items in this queue</p>
+                  <p className="text-surface-500 text-sm mt-1">You're all caught up!</p>
+                </div>
+              ) : (
+                getActiveQueue().map((risk: any) => (
+                  <div key={risk.id} className="p-4 hover:bg-surface-700/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      {/* Risk Level Indicator */}
+                      <div className={`w-3 h-3 rounded-full ${getRiskLevelColor(risk.inherentRisk)}`} />
+
+                      {/* Risk Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-brand-400 font-mono text-sm">{risk.riskId}</span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${getRiskLevelColor(risk.inherentRisk)} text-white`}>
+                            {risk.inherentRisk}
+                          </span>
+                        </div>
+                        <p className="text-white font-medium mt-1 truncate">{risk.title}</p>
+                        <p className="text-surface-400 text-sm truncate">{risk.description}</p>
+                        
+                        {/* Meta Info */}
+                        <div className="flex items-center gap-4 mt-2 text-xs text-surface-500">
+                          <span>Category: {risk.category}</span>
+                          <span>Created: {new Date(risk.createdAt).toLocaleDateString()}</span>
+                          {risk.treatmentDueDate && (
+                            <span className="text-amber-400">
+                              Due: {new Date(risk.treatmentDueDate).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <Link
+                        to={`/risks/${risk.id}`}
+                        className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors shrink-0"
+                      >
+                        {getActionText()}
+                        <ArrowRightIcon className="w-4 h-4" />
+                      </Link>
                     </div>
                   </div>
-
-                  {/* Action Button */}
-                  <Link
-                    to={`/risks/${risk.id}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors shrink-0"
-                  >
-                    {getActionText()}
-                    <ArrowRightIcon className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
-            ))
+                ))
+              )}
+            </>
           )}
         </div>
       </div>

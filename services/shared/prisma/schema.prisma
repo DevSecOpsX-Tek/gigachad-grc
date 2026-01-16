@@ -691,17 +691,17 @@ model Workspace {
   members      WorkspaceMember[]
 
   // Workspace-scoped entities
-  implementations ControlImplementation[] @relation("WorkspaceImplementations")
-  evidence        Evidence[]              @relation("WorkspaceEvidence")
-  risks           Risk[]                  @relation("WorkspaceRisks")
-  vendors         Vendor[]                @relation("WorkspaceVendors")
-  assets          Asset[]                 @relation("WorkspaceAssets")
-  audits          Audit[]                 @relation("WorkspaceAudits")
-  frameworks      Framework[]             @relation("WorkspaceFrameworks")
-  configFiles     ConfigFile[]            @relation("WorkspaceConfigFiles")
-  configResourceStates ConfigResourceState[] @relation("WorkspaceConfigResourceStates")
-  configApplyHistory   ConfigApplyHistory[]  @relation("WorkspaceConfigApplyHistory")
-  configApplyLocks     ConfigApplyLock[]     @relation("WorkspaceConfigApplyLocks")
+  implementations      ControlImplementation[] @relation("WorkspaceImplementations")
+  evidence             Evidence[]              @relation("WorkspaceEvidence")
+  risks                Risk[]                  @relation("WorkspaceRisks")
+  vendors              Vendor[]                @relation("WorkspaceVendors")
+  assets               Asset[]                 @relation("WorkspaceAssets")
+  audits               Audit[]                 @relation("WorkspaceAudits")
+  frameworks           Framework[]             @relation("WorkspaceFrameworks")
+  configFiles          ConfigFile[]            @relation("WorkspaceConfigFiles")
+  configResourceStates ConfigResourceState[]   @relation("WorkspaceConfigResourceStates")
+  configApplyHistory   ConfigApplyHistory[]    @relation("WorkspaceConfigApplyHistory")
+  configApplyLocks     ConfigApplyLock[]       @relation("WorkspaceConfigApplyLocks")
 
   @@unique([organizationId, slug])
   @@index([organizationId, status])
@@ -882,16 +882,16 @@ model User {
   auditTeamMemberships             AuditTeamMember[]       @relation("AuditTeamMember")
 
   // Audit Enhancements
-  auditTemplatesCreated       AuditTemplate[]        @relation("AuditTemplateCreatedBy")
-  workpapersPrepared          AuditWorkpaper[]       @relation("WorkpaperPreparedBy")
-  workpapersReviewed          AuditWorkpaper[]       @relation("WorkpaperReviewedBy")
-  workpapersApproved          AuditWorkpaper[]       @relation("WorkpaperApprovedBy")
-  workpaperHistoryChanged     WorkpaperHistory[]     @relation("WorkpaperHistoryChangedBy")
-  remediationPlansCreated     RemediationPlan[]      @relation("RemediationPlanCreatedBy")
-  milestonesAssigned          RemediationMilestone[] @relation("MilestoneAssignedTo")
-  testProceduresTested        AuditTestProcedure[]   @relation("TestProcedureTestedBy")
-  testProceduresReviewed      AuditTestProcedure[]   @relation("TestProcedureReviewedBy")
-  auditPlansCreated           AuditPlanEntry[]       @relation("AuditPlanCreatedBy")
+  auditTemplatesCreated   AuditTemplate[]        @relation("AuditTemplateCreatedBy")
+  workpapersPrepared      AuditWorkpaper[]       @relation("WorkpaperPreparedBy")
+  workpapersReviewed      AuditWorkpaper[]       @relation("WorkpaperReviewedBy")
+  workpapersApproved      AuditWorkpaper[]       @relation("WorkpaperApprovedBy")
+  workpaperHistoryChanged WorkpaperHistory[]     @relation("WorkpaperHistoryChangedBy")
+  remediationPlansCreated RemediationPlan[]      @relation("RemediationPlanCreatedBy")
+  milestonesAssigned      RemediationMilestone[] @relation("MilestoneAssignedTo")
+  testProceduresTested    AuditTestProcedure[]   @relation("TestProcedureTestedBy")
+  testProceduresReviewed  AuditTestProcedure[]   @relation("TestProcedureReviewedBy")
+  auditPlansCreated       AuditPlanEntry[]       @relation("AuditPlanCreatedBy")
 
   // Custom Dashboards
   dashboards                  Dashboard[]           @relation("UserDashboards")
@@ -899,16 +899,16 @@ model User {
   dashboardDataSourcesCreated DashboardDataSource[] @relation("DataSourceCreator")
 
   // Training
-  trainingProgress         TrainingProgress[]   @relation("UserTrainingProgress")
-  trainingAssignments      TrainingAssignment[] @relation("UserTrainingAssignments")
-  trainingAssigned         TrainingAssignment[] @relation("TrainingAssigner")
-  trainingCampaignsCreated TrainingCampaign[]   @relation("TrainingCampaignCreator")
+  trainingProgress             TrainingProgress[]     @relation("UserTrainingProgress")
+  trainingAssignments          TrainingAssignment[]   @relation("UserTrainingAssignments")
+  trainingAssigned             TrainingAssignment[]   @relation("TrainingAssigner")
+  trainingCampaignsCreated     TrainingCampaign[]     @relation("TrainingCampaignCreator")
   customTrainingModulesCreated CustomTrainingModule[] @relation("CustomTrainingModuleCreator")
-  configFilesCreated       ConfigFile[]        @relation("ConfigFileCreator")
-  configFilesUpdated       ConfigFile[]        @relation("ConfigFileUpdater")
-  configFilesDeleted       ConfigFile[]        @relation("ConfigFileDeleter")
-  configFileVersionsCreated ConfigFileVersion[] @relation("ConfigFileVersionCreator")
-  
+  configFilesCreated           ConfigFile[]           @relation("ConfigFileCreator")
+  configFilesUpdated           ConfigFile[]           @relation("ConfigFileUpdater")
+  configFilesDeleted           ConfigFile[]           @relation("ConfigFileDeleter")
+  configFileVersionsCreated    ConfigFileVersion[]    @relation("ConfigFileVersionCreator")
+
   // Config as Code State Tracking
   configResourceStatesApplied ConfigResourceState[] @relation("ConfigResourceStateApplier")
   configApplyHistoryApplied   ConfigApplyHistory[]  @relation("ConfigApplyHistoryApplier")
@@ -923,6 +923,12 @@ model User {
   // Department memberships
   departmentMemberships UserDepartment[]
   headOfDepartments     Department[]     @relation("DepartmentHead")
+
+  // Risk Workflow Tasks
+  riskWorkflowTasksAssigned  RiskWorkflowTask[]           @relation("RiskWorkflowTaskAssignee")
+  riskWorkflowTasksCreated   RiskWorkflowTask[]           @relation("RiskWorkflowTaskAssigner")
+  riskWorkflowTasksCompleted RiskWorkflowTask[]           @relation("RiskWorkflowTaskCompleter")
+  userNotificationPrefs      UserNotificationPreferences? @relation("UserNotificationPrefs")
 
   @@unique([organizationId, email])
   @@map("users")
@@ -1744,10 +1750,10 @@ model WebhookSubscription {
   name                String
   url                 String
   description         String?
-  events              String[]  // Array of event types to subscribe to
-  secret              String    // Secret for signature verification
+  events              String[] // Array of event types to subscribe to
+  secret              String // Secret for signature verification
   isActive            Boolean   @default(true) @map("is_active")
-  headers             String?   // JSON string of custom headers
+  headers             String? // JSON string of custom headers
   createdBy           String    @map("created_by")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
@@ -1999,10 +2005,10 @@ model PermissionGroup {
 
   // Relations
   members          UserGroupMembership[]
-  organization     Organization          @relation(fields: [organizationId], references: [id])
+  organization     Organization                     @relation(fields: [organizationId], references: [id])
   scimExternalId   ScimGroupExternalId?
-  parentGroups     PermissionGroupHierarchy[] @relation("ChildGroup")
-  childGroups      PermissionGroupHierarchy[] @relation("ParentGroup")
+  parentGroups     PermissionGroupHierarchy[]       @relation("ChildGroup")
+  childGroups      PermissionGroupHierarchy[]       @relation("ParentGroup")
   departmentScopes PermissionGroupDepartmentScope[]
 
   @@unique([organizationId, name])
@@ -2147,16 +2153,17 @@ model Risk {
   controls      RiskControl[]
   scenarios     RiskScenario[]
   history       RiskHistory[]
+  workflowTasks RiskWorkflowTask[]
   assessment    RiskAssessment?
   treatment     RiskTreatment?
-  organization  Organization    @relation(fields: [organizationId], references: [id])
-  workspace     Workspace?      @relation("WorkspaceRisks", fields: [workspaceId], references: [id])
-  createdByUser User            @relation("RiskCreatedBy", fields: [createdBy], references: [id])
-  reporter      User?           @relation("RiskReporter", fields: [reporterId], references: [id])
-  grcSme        User?           @relation("RiskGrcSme", fields: [grcSmeId], references: [id])
-  riskAssessor  User?           @relation("RiskAssessor", fields: [riskAssessorId], references: [id])
-  riskOwner     User?           @relation("RiskOwner", fields: [riskOwnerId], references: [id])
-  deletedByUser User?           @relation("RiskDeletedBy", fields: [deletedBy], references: [id])
+  organization  Organization       @relation(fields: [organizationId], references: [id])
+  workspace     Workspace?         @relation("WorkspaceRisks", fields: [workspaceId], references: [id])
+  createdByUser User               @relation("RiskCreatedBy", fields: [createdBy], references: [id])
+  reporter      User?              @relation("RiskReporter", fields: [reporterId], references: [id])
+  grcSme        User?              @relation("RiskGrcSme", fields: [grcSmeId], references: [id])
+  riskAssessor  User?              @relation("RiskAssessor", fields: [riskAssessorId], references: [id])
+  riskOwner     User?              @relation("RiskOwner", fields: [riskOwnerId], references: [id])
+  deletedByUser User?              @relation("RiskDeletedBy", fields: [deletedBy], references: [id])
   riskTags      RiskTag[]
 
   @@unique([organizationId, riskId])
@@ -2448,6 +2455,90 @@ model RiskHistory {
 }
 
 // ===========================================
+// Risk Workflow Tasks
+// ===========================================
+
+model RiskWorkflowTask {
+  id             String @id @default(uuid())
+  organizationId String @map("organization_id")
+  riskId         String @map("risk_id")
+
+  // Task details
+  taskType    String  @map("task_type") // validate, assess, review_assessment, treatment_decision, executive_approval, mitigation_update
+  title       String
+  description String?
+
+  // Assignment
+  assigneeId   String   @map("assignee_id")
+  assignedById String   @map("assigned_by_id")
+  assignedAt   DateTime @default(now()) @map("assigned_at")
+
+  // Status tracking
+  status   String @default("pending") // pending, in_progress, completed, cancelled, reassigned
+  priority String @default("medium") // low, medium, high, critical
+
+  // Dates
+  dueDate       DateTime? @map("due_date")
+  startedAt     DateTime? @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  completedById String?   @map("completed_by_id")
+
+  // Workflow context
+  workflowStage   String  @map("workflow_stage") // intake, assessment, treatment
+  previousStatus  String? @map("previous_status")
+  resultingAction String? @map("resulting_action") // approved, rejected, revised, etc.
+
+  // Notes
+  notes           String?
+  completionNotes String? @map("completion_notes")
+
+  // Auto vs manual
+  isAutoCreated Boolean @default(true) @map("is_auto_created")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  risk        Risk  @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  assignee    User  @relation("RiskWorkflowTaskAssignee", fields: [assigneeId], references: [id])
+  assignedBy  User  @relation("RiskWorkflowTaskAssigner", fields: [assignedById], references: [id])
+  completedBy User? @relation("RiskWorkflowTaskCompleter", fields: [completedById], references: [id])
+
+  @@index([organizationId, assigneeId, status])
+  @@index([riskId, status])
+  @@index([assigneeId, status, dueDate])
+  @@map("risk_workflow_tasks")
+}
+
+// ===========================================
+// User Notification Preferences
+// ===========================================
+
+model UserNotificationPreferences {
+  id     String @id @default(uuid())
+  userId String @unique @map("user_id")
+
+  // Risk task notifications
+  riskTaskEmail Boolean @default(true) @map("risk_task_email")
+  riskTaskInApp Boolean @default(true) @map("risk_task_in_app")
+  riskTaskSlack Boolean @default(false) @map("risk_task_slack")
+  slackUserId   String? @map("slack_user_id")
+
+  // Notification timing
+  digestMode      String  @default("immediate") // immediate, daily_digest, weekly_digest
+  quietHoursStart String? @map("quiet_hours_start") // "22:00"
+  quietHoursEnd   String? @map("quiet_hours_end") // "08:00"
+  timezone        String  @default("UTC")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation("UserNotificationPrefs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_preferences")
+}
+
+// ===========================================
 // Risk Configuration
 // ===========================================
 
@@ -2551,9 +2642,9 @@ model TprmConfiguration {
   // }
 
   // Audit Trail
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  updatedBy String?   @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
 
   // Relations
   updatedByUser User? @relation("TprmConfigurationUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict)
@@ -2566,12 +2657,12 @@ model TprmConfiguration {
 // ===========================================
 
 model AnswerTemplate {
-  id             String   @id @default(uuid())
-  organizationId String   @map("organization_id")
+  id             String @id @default(uuid())
+  organizationId String @map("organization_id")
 
-  title    String   @db.VarChar(500)
-  content  String   @db.Text
-  category String?  @db.VarChar(100) // security, privacy, compliance, legal, technical, general
+  title    String  @db.VarChar(500)
+  content  String  @db.Text
+  category String? @db.VarChar(100) // security, privacy, compliance, legal, technical, general
 
   // Variable placeholders used in content (e.g., ["company_name", "date"])
   variables Json @default("[]")
@@ -2628,9 +2719,9 @@ model TrustConfiguration {
   // AI Settings (optional features)
   aiSettings Json @default("{\"enabled\":false,\"autoCategorizationEnabled\":false,\"answerSuggestionsEnabled\":false}") @map("ai_settings")
 
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  updatedBy String?   @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
 
   updatedByUser User? @relation("TrustConfigurationUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict)
 
@@ -3360,10 +3451,10 @@ model Audit {
   deletedBy String?   @map("deleted_by")
 
   // Template & Checklist
-  templateId             String? @map("template_id")
-  checklistProgress      Json    @default("{}") @map("checklist_progress")
-  checklistCompletedCount Int    @default(0) @map("checklist_completed_count")
-  checklistTotalCount    Int     @default(0) @map("checklist_total_count")
+  templateId              String? @map("template_id")
+  checklistProgress       Json    @default("{}") @map("checklist_progress")
+  checklistCompletedCount Int     @default(0) @map("checklist_completed_count")
+  checklistTotalCount     Int     @default(0) @map("checklist_total_count")
 
   // Relations
   organization   Organization         @relation(fields: [organizationId], references: [id])
@@ -3424,11 +3515,11 @@ model AuditRequest {
   reviewerNotes String? @map("reviewer_notes") @db.Text
 
   // Recurring Evidence Collection
-  isRecurring         Boolean   @default(false) @map("is_recurring")
-  recurrencePattern   Json?     @map("recurrence_pattern")
-  lastCollectedAt     DateTime? @map("last_collected_at")
-  nextCollectionDue   DateTime? @map("next_collection_due")
-  evidenceValidityDays Int?     @map("evidence_validity_days")
+  isRecurring          Boolean   @default(false) @map("is_recurring")
+  recurrencePattern    Json?     @map("recurrence_pattern")
+  lastCollectedAt      DateTime? @map("last_collected_at")
+  nextCollectionDue    DateTime? @map("next_collection_due")
+  evidenceValidityDays Int?      @map("evidence_validity_days")
 
   tags String[] @default([])
 
@@ -3551,9 +3642,9 @@ model AuditFinding {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
-  audit               Audit            @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  identifiedByUser    User             @relation("AuditFindingIdentifiedBy", fields: [identifiedBy], references: [id], onDelete: Restrict)
-  remediationPlanRef  RemediationPlan?
+  audit              Audit            @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  identifiedByUser   User             @relation("AuditFindingIdentifiedBy", fields: [identifiedBy], references: [id], onDelete: Restrict)
+  remediationPlanRef RemediationPlan?
 
   @@index([auditId, severity])
   @@index([organizationId, status])
@@ -4421,21 +4512,21 @@ model TrainingCampaign {
 
 // Custom training modules (SCORM uploads)
 model CustomTrainingModule {
-  id             String    @id @default(uuid())
-  organizationId String    @map("organization_id")
-  name           String
-  description    String?
-  category       String    @default("custom") // social-engineering, privacy, secure-coding, general, custom
-  duration       Int       @default(30) // Estimated minutes
-  difficulty     String    @default("beginner") // beginner, intermediate, advanced
-  scormPath      String?   @map("scorm_path") // Path to extracted SCORM package
-  originalFileName String? @map("original_file_name")
-  iconType       String    @default("security") // For UI display
-  topics         Json      @default("[]") // Array of topic strings
-  isActive       Boolean   @default(true) @map("is_active")
-  createdBy      String    @map("created_by")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  organizationId   String   @map("organization_id")
+  name             String
+  description      String?
+  category         String   @default("custom") // social-engineering, privacy, secure-coding, general, custom
+  duration         Int      @default(30) // Estimated minutes
+  difficulty       String   @default("beginner") // beginner, intermediate, advanced
+  scormPath        String?  @map("scorm_path") // Path to extracted SCORM package
+  originalFileName String?  @map("original_file_name")
+  iconType         String   @default("security") // For UI display
+  topics           Json     @default("[]") // Array of topic strings
+  isActive         Boolean  @default(true) @map("is_active")
+  createdBy        String   @map("created_by")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   // Relations
   organization Organization @relation("OrgCustomTrainingModules", fields: [organizationId], references: [id], onDelete: Cascade)
@@ -4453,27 +4544,27 @@ model CustomTrainingModule {
 
 // Configuration file storage for IDE
 model ConfigFile {
-  id             String   @id @default(uuid())
-  organizationId String   @map("organization_id")
-  workspaceId    String?  @map("workspace_id") // null = org-level
-  path           String   // e.g., "controls/main.tf", "frameworks/soc2.yaml"
-  format         String   // "terraform", "yaml", "json"
-  content        String   @db.Text
-  version        Int      @default(1) // Increment on each save
-  commitMessage  String?  @map("commit_message")
-  createdBy      String   @map("created_by")
-  updatedBy      String   @map("updated_by")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  workspaceId    String?   @map("workspace_id") // null = org-level
+  path           String // e.g., "controls/main.tf", "frameworks/soc2.yaml"
+  format         String // "terraform", "yaml", "json"
+  content        String    @db.Text
+  version        Int       @default(1) // Increment on each save
+  commitMessage  String?   @map("commit_message")
+  createdBy      String    @map("created_by")
+  updatedBy      String    @map("updated_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")
   deletedBy      String?   @map("deleted_by")
 
   // Relations
-  organization Organization @relation("OrgConfigFiles", fields: [organizationId], references: [id], onDelete: Cascade)
-  workspace    Workspace?   @relation("WorkspaceConfigFiles", fields: [workspaceId], references: [id], onDelete: Cascade)
-  creator      User         @relation("ConfigFileCreator", fields: [createdBy], references: [id])
-  updater      User         @relation("ConfigFileUpdater", fields: [updatedBy], references: [id])
-  deleter      User?        @relation("ConfigFileDeleter", fields: [deletedBy], references: [id])
+  organization Organization        @relation("OrgConfigFiles", fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace?          @relation("WorkspaceConfigFiles", fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator      User                @relation("ConfigFileCreator", fields: [createdBy], references: [id])
+  updater      User                @relation("ConfigFileUpdater", fields: [updatedBy], references: [id])
+  deleter      User?               @relation("ConfigFileDeleter", fields: [deletedBy], references: [id])
   versions     ConfigFileVersion[]
 
   @@unique([organizationId, workspaceId, path])
@@ -4485,14 +4576,14 @@ model ConfigFile {
 
 // Version history for config files
 model ConfigFileVersion {
-  id           String    @id @default(uuid())
-  configFileId String    @map("config_file_id")
-  version      Int       // Version number
-  content      String    @db.Text
+  id            String   @id @default(uuid())
+  configFileId  String   @map("config_file_id")
+  version       Int // Version number
+  content       String   @db.Text
   commitMessage String?  @map("commit_message")
-  changes      Json?     // Diff/changes summary
-  createdBy    String    @map("created_by")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  changes       Json? // Diff/changes summary
+  createdBy     String   @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   // Relations
   configFile ConfigFile @relation(fields: [configFileId], references: [id], onDelete: Cascade)
@@ -4510,34 +4601,34 @@ model ConfigFileVersion {
 
 // Tracks the last-applied state of each resource from Config as Code
 model ConfigResourceState {
-  id             String    @id @default(uuid())
-  organizationId String    @map("organization_id")
-  workspaceId    String?   @map("workspace_id")
-  
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  workspaceId    String? @map("workspace_id")
+
   // Resource identification
-  resourceType   String    @map("resource_type")   // 'control', 'framework', 'policy', 'risk', 'vendor'
-  resourceId     String    @map("resource_id")     // The business identifier
-  databaseId     String?   @map("database_id")     // The actual database UUID
-  
+  resourceType String  @map("resource_type") // 'control', 'framework', 'policy', 'risk', 'vendor'
+  resourceId   String  @map("resource_id") // The business identifier
+  databaseId   String? @map("database_id") // The actual database UUID
+
   // State tracking
-  lastAppliedHash    String   @map("last_applied_hash")    // SHA-256 hash of applied content
+  lastAppliedHash    String   @map("last_applied_hash") // SHA-256 hash of applied content
   lastAppliedContent Json     @map("last_applied_content") // The actual content applied
-  lastAppliedAt      DateTime @map("last_applied_at") @default(now())
+  lastAppliedAt      DateTime @default(now()) @map("last_applied_at")
   appliedBy          String   @map("applied_by")
-  
+
   // Source tracking
-  sourceFile    String?  @map("source_file")
-  sourceLine    Int?     @map("source_line")
-  
+  sourceFile String? @map("source_file")
+  sourceLine Int?    @map("source_line")
+
   // Metadata
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   // Relations
   organization Organization @relation("OrgConfigResourceStates", fields: [organizationId], references: [id], onDelete: Cascade)
   workspace    Workspace?   @relation("WorkspaceConfigResourceStates", fields: [workspaceId], references: [id], onDelete: Cascade)
   applier      User         @relation("ConfigResourceStateApplier", fields: [appliedBy], references: [id])
-  
+
   @@unique([organizationId, workspaceId, resourceType, resourceId])
   @@index([organizationId])
   @@index([resourceType, resourceId])
@@ -4547,16 +4638,16 @@ model ConfigResourceState {
 
 // History of all Config as Code apply operations
 model ConfigApplyHistory {
-  id             String    @id @default(uuid())
-  organizationId String    @map("organization_id")
-  workspaceId    String?   @map("workspace_id")
-  
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  workspaceId    String? @map("workspace_id")
+
   // Apply operation details
-  appliedAt      DateTime  @default(now()) @map("applied_at")
-  appliedBy      String    @map("applied_by")
-  sourceFile     String?   @map("source_file")
-  commitMessage  String?   @map("commit_message")
-  
+  appliedAt     DateTime @default(now()) @map("applied_at")
+  appliedBy     String   @map("applied_by")
+  sourceFile    String?  @map("source_file")
+  commitMessage String?  @map("commit_message")
+
   // Results
   resourcesCreated  Int     @default(0) @map("resources_created")
   resourcesUpdated  Int     @default(0) @map("resources_updated")
@@ -4564,44 +4655,44 @@ model ConfigApplyHistory {
   resourcesSkipped  Int     @default(0) @map("resources_skipped")
   conflictsDetected Int     @default(0) @map("conflicts_detected")
   conflictsResolved String? @map("conflicts_resolved") // 'force', 'skip', 'abort'
-  
+
   // State snapshot
   resourceCount Int     @default(0) @map("resource_count")
   stateHash     String? @map("state_hash")
-  
+
   // Metadata
-  durationMs   Int?   @map("duration_ms")
-  errorCount   Int    @default(0) @map("error_count")
-  errors       Json?
-  warnings     Json?
-  
+  durationMs Int?  @map("duration_ms")
+  errorCount Int   @default(0) @map("error_count")
+  errors     Json?
+  warnings   Json?
+
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   // Relations
   organization Organization @relation("OrgConfigApplyHistory", fields: [organizationId], references: [id], onDelete: Cascade)
   workspace    Workspace?   @relation("WorkspaceConfigApplyHistory", fields: [workspaceId], references: [id], onDelete: Cascade)
   applier      User         @relation("ConfigApplyHistoryApplier", fields: [appliedBy], references: [id])
-  
+
   @@index([organizationId, appliedAt(sort: Desc)])
   @@map("config_apply_history")
 }
 
 // Prevents concurrent apply operations
 model ConfigApplyLock {
-  id             String    @id @default(uuid())
-  organizationId String    @map("organization_id")
-  workspaceId    String?   @map("workspace_id")
-  
-  lockedBy    String    @map("locked_by")
-  lockedAt    DateTime  @default(now()) @map("locked_at")
-  lockReason  String?   @map("lock_reason")
-  expiresAt   DateTime  @map("expires_at")
-  
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  workspaceId    String? @map("workspace_id")
+
+  lockedBy   String   @map("locked_by")
+  lockedAt   DateTime @default(now()) @map("locked_at")
+  lockReason String?  @map("lock_reason")
+  expiresAt  DateTime @map("expires_at")
+
   // Relations
   organization Organization @relation("OrgConfigApplyLocks", fields: [organizationId], references: [id], onDelete: Cascade)
   workspace    Workspace?   @relation("WorkspaceConfigApplyLocks", fields: [workspaceId], references: [id], onDelete: Cascade)
   locker       User         @relation("ConfigApplyLockLocker", fields: [lockedBy], references: [id])
-  
+
   @@unique([organizationId, workspaceId])
   @@map("config_apply_locks")
 }
@@ -4612,34 +4703,34 @@ model ConfigApplyLock {
 
 // Reusable audit templates
 model AuditTemplate {
-  id             String  @id @default(uuid())
-  organizationId String  @map("organization_id")
-  
+  id             String @id @default(uuid())
+  organizationId String @map("organization_id")
+
   // Template Details
   name        String
   description String? @db.Text
   auditType   String  @map("audit_type")
   framework   String?
-  
+
   // Template Content
   checklistItems         Json @default("[]") @map("checklist_items")
   requestTemplates       Json @default("[]") @map("request_templates")
   testProcedureTemplates Json @default("[]") @map("test_procedure_templates")
-  
+
   // Metadata
   isSystem   Boolean @default(false) @map("is_system")
   status     String  @default("active")
   usageCount Int     @default(0) @map("usage_count")
-  
+
   // Audit Trail
   createdBy String   @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   // Relations
-  audits       Audit[]
+  audits        Audit[]
   createdByUser User    @relation("AuditTemplateCreatedBy", fields: [createdBy], references: [id])
-  
+
   @@index([organizationId])
   @@index([auditType])
   @@index([framework])
@@ -4660,48 +4751,48 @@ model AuditWorkpaper {
   id             String @id @default(uuid())
   auditId        String @map("audit_id")
   organizationId String @map("organization_id")
-  
+
   // Workpaper Details
-  workpaperNumber String @map("workpaper_number")
+  workpaperNumber String  @map("workpaper_number")
   title           String
-  workpaperType   String @default("general") @map("workpaper_type")
+  workpaperType   String  @default("general") @map("workpaper_type")
   content         String? @db.Text
-  
+
   // Status & Version
   status  WorkpaperStatus @default(draft)
   version Int             @default(1)
-  
+
   // Preparation
   preparedBy String    @map("prepared_by")
   preparedAt DateTime? @map("prepared_at")
-  
+
   // Review
   reviewedBy  String?   @map("reviewed_by")
   reviewedAt  DateTime? @map("reviewed_at")
   reviewNotes String?   @map("review_notes") @db.Text
-  
+
   // Approval
   approvedBy    String?   @map("approved_by")
   approvedAt    DateTime? @map("approved_at")
   approvalNotes String?   @map("approval_notes") @db.Text
-  
+
   // Cross-references
   attachments     Json @default("[]")
   crossReferences Json @default("[]") @map("cross_references")
   relatedControls Json @default("[]") @map("related_controls")
   relatedFindings Json @default("[]") @map("related_findings")
-  
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   // Relations
-  audit           Audit              @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  preparedByUser  User               @relation("WorkpaperPreparedBy", fields: [preparedBy], references: [id])
-  reviewedByUser  User?              @relation("WorkpaperReviewedBy", fields: [reviewedBy], references: [id])
-  approvedByUser  User?              @relation("WorkpaperApprovedBy", fields: [approvedBy], references: [id])
-  history         WorkpaperHistory[]
-  
+  audit          Audit              @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  preparedByUser User               @relation("WorkpaperPreparedBy", fields: [preparedBy], references: [id])
+  reviewedByUser User?              @relation("WorkpaperReviewedBy", fields: [reviewedBy], references: [id])
+  approvedByUser User?              @relation("WorkpaperApprovedBy", fields: [approvedBy], references: [id])
+  history        WorkpaperHistory[]
+
   @@unique([auditId, workpaperNumber])
   @@index([auditId])
   @@index([organizationId])
@@ -4713,20 +4804,20 @@ model AuditWorkpaper {
 model WorkpaperHistory {
   id          String @id @default(uuid())
   workpaperId String @map("workpaper_id")
-  
+
   // Version Info
   version       Int
   content       String? @db.Text
   changeSummary String? @map("change_summary") @db.Text
-  
+
   // Change Details
   changedBy String   @map("changed_by")
   changedAt DateTime @default(now()) @map("changed_at")
-  
+
   // Relations
   workpaper     AuditWorkpaper @relation(fields: [workpaperId], references: [id], onDelete: Cascade)
   changedByUser User           @relation("WorkpaperHistoryChangedBy", fields: [changedBy], references: [id])
-  
+
   @@index([workpaperId, version])
   @@map("workpaper_history")
 }
@@ -4736,42 +4827,42 @@ model RemediationPlan {
   id             String @id @default(uuid())
   findingId      String @unique @map("finding_id")
   organizationId String @map("organization_id")
-  
+
   // Plan Details
   planNumber  String @map("plan_number")
   description String @db.Text
-  
+
   // Status
   status   String @default("open")
   priority String @default("medium")
-  
+
   // Timeline
   scheduledStart DateTime? @map("scheduled_start")
   scheduledEnd   DateTime? @map("scheduled_end")
   actualStart    DateTime? @map("actual_start")
   actualEnd      DateTime? @map("actual_end")
-  
+
   // Resources
-  resources      Json @default("[]")
-  estimatedHours Int? @map("estimated_hours")
-  actualHours    Int? @map("actual_hours")
+  resources      Json     @default("[]")
+  estimatedHours Int?     @map("estimated_hours")
+  actualHours    Int?     @map("actual_hours")
   estimatedCost  Decimal? @map("estimated_cost") @db.Decimal(12, 2)
   actualCost     Decimal? @map("actual_cost") @db.Decimal(12, 2)
-  
+
   // Notes
-  notes              String? @db.Text
+  notes               String? @db.Text
   riskIfNotRemediated String? @map("risk_if_not_remediated") @db.Text
-  
+
   // Audit Trail
   createdBy String   @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   // Relations
-  finding       AuditFinding          @relation(fields: [findingId], references: [id], onDelete: Cascade)
-  createdByUser User                  @relation("RemediationPlanCreatedBy", fields: [createdBy], references: [id])
+  finding       AuditFinding           @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  createdByUser User                   @relation("RemediationPlanCreatedBy", fields: [createdBy], references: [id])
   milestones    RemediationMilestone[]
-  
+
   @@index([organizationId])
   @@index([status])
   @@index([priority])
@@ -4782,35 +4873,35 @@ model RemediationPlan {
 model RemediationMilestone {
   id     String @id @default(uuid())
   planId String @map("plan_id")
-  
+
   // Milestone Details
-  milestoneNumber Int    @map("milestone_number")
+  milestoneNumber Int     @map("milestone_number")
   title           String
   description     String? @db.Text
-  
+
   // Status
   status String @default("pending")
-  
+
   // Timeline
   dueDate       DateTime? @map("due_date")
   completedDate DateTime? @map("completed_date")
-  
+
   // Assignment
   assignedTo String? @map("assigned_to")
-  
+
   // Evidence
   evidenceRequired Boolean @default(false) @map("evidence_required")
   evidenceIds      Json    @default("[]") @map("evidence_ids")
-  
+
   notes String? @db.Text
-  
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   // Relations
   plan           RemediationPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   assignedToUser User?           @relation("MilestoneAssignedTo", fields: [assignedTo], references: [id])
-  
+
   @@index([planId])
   @@index([status])
   @@map("remediation_milestones")
@@ -4821,59 +4912,59 @@ model AuditTestProcedure {
   id             String @id @default(uuid())
   auditId        String @map("audit_id")
   organizationId String @map("organization_id")
-  
+
   // Procedure Details
   procedureNumber String @map("procedure_number")
   title           String
   description     String @db.Text
-  
+
   // Control Link
   controlId      String? @map("control_id")
   requirementRef String? @map("requirement_ref")
-  
+
   // Test Type & Method
   testType   String  @map("test_type") // inquiry, observation, inspection, reperformance
   testMethod String? @map("test_method") // manual, automated, hybrid
-  
+
   // Sampling
   sampleSize      Int?    @map("sample_size")
   sampleSelection String? @map("sample_selection")
   populationSize  Int?    @map("population_size")
   sampleCriteria  String? @map("sample_criteria") @db.Text
-  
+
   // Results
   expectedResult  String? @map("expected_result") @db.Text
   actualResult    String? @map("actual_result") @db.Text
   deviationsNoted String? @map("deviations_noted") @db.Text
-  
+
   // Conclusion
   conclusion          String? // effective, ineffective, partially_effective, not_applicable
   conclusionRationale String? @map("conclusion_rationale") @db.Text
-  
+
   // Execution
   testedBy String?   @map("tested_by")
   testedAt DateTime? @map("tested_at")
-  
+
   // Review
   reviewedBy  String?   @map("reviewed_by")
   reviewedAt  DateTime? @map("reviewed_at")
   reviewNotes String?   @map("review_notes") @db.Text
-  
+
   // Attachments
   attachments Json @default("[]")
   evidenceIds Json @default("[]") @map("evidence_ids")
-  
+
   // Status
   status String @default("pending")
-  
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   // Relations
   audit          Audit @relation(fields: [auditId], references: [id], onDelete: Cascade)
   testedByUser   User? @relation("TestProcedureTestedBy", fields: [testedBy], references: [id])
   reviewedByUser User? @relation("TestProcedureReviewedBy", fields: [reviewedBy], references: [id])
-  
+
   @@index([auditId])
   @@index([organizationId])
   @@index([controlId])
@@ -4885,46 +4976,46 @@ model AuditTestProcedure {
 model AuditPlanEntry {
   id             String @id @default(uuid())
   organizationId String @map("organization_id")
-  
+
   // Planning Period
   year    Int
   quarter Int?
-  
+
   // Audit Details
-  auditName  String @map("audit_name")
-  auditType  String @map("audit_type")
+  auditName  String  @map("audit_name")
+  auditType  String  @map("audit_type")
   framework  String?
   scope      String? @db.Text
   objectives String? @db.Text
-  
+
   // Risk Assessment
   riskRating  String? @map("risk_rating")
   riskFactors Json    @default("[]") @map("risk_factors")
-  
+
   // Resource Planning
   estimatedHours  Int?     @map("estimated_hours")
   estimatedBudget Decimal? @map("estimated_budget") @db.Decimal(12, 2)
   assignedTeam    Json     @default("[]") @map("assigned_team")
   leadAuditor     String?  @map("lead_auditor")
-  
+
   // Status
   status         String  @default("planned")
   deferralReason String? @map("deferral_reason") @db.Text
-  
+
   // Linked Audit
   linkedAuditId String? @map("linked_audit_id")
-  
+
   notes String? @db.Text
-  
+
   // Audit Trail
   createdBy String   @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   // Relations
   linkedAudit   Audit? @relation("LinkedAuditPlan", fields: [linkedAuditId], references: [id], onDelete: SetNull)
   createdByUser User   @relation("AuditPlanCreatedBy", fields: [createdBy], references: [id])
-  
+
   @@index([organizationId])
   @@index([year, quarter])
   @@index([status])
@@ -4936,16 +5027,16 @@ model AuditPlanEntry {
 model AuditAnalyticsSnapshot {
   id             String @id @default(uuid())
   organizationId String @map("organization_id")
-  
+
   // Snapshot Period
   snapshotDate DateTime @map("snapshot_date")
   snapshotType String   @map("snapshot_type") // daily, weekly, monthly, quarterly
-  
+
   // Audit Metrics
   totalAudits     Int @default(0) @map("total_audits")
   activeAudits    Int @default(0) @map("active_audits")
   completedAudits Int @default(0) @map("completed_audits")
-  
+
   // Finding Metrics
   totalFindings    Int @default(0) @map("total_findings")
   openFindings     Int @default(0) @map("open_findings")
@@ -4954,31 +5045,31 @@ model AuditAnalyticsSnapshot {
   mediumFindings   Int @default(0) @map("medium_findings")
   lowFindings      Int @default(0) @map("low_findings")
   overdueFindings  Int @default(0) @map("overdue_findings")
-  
+
   // Remediation Metrics
-  avgRemediationDays     Decimal? @map("avg_remediation_days") @db.Decimal(8, 2)
-  onTimeRemediationRate  Decimal? @map("on_time_remediation_rate") @db.Decimal(5, 2)
-  
+  avgRemediationDays    Decimal? @map("avg_remediation_days") @db.Decimal(8, 2)
+  onTimeRemediationRate Decimal? @map("on_time_remediation_rate") @db.Decimal(5, 2)
+
   // Testing Metrics
   testsCompleted           Int      @default(0) @map("tests_completed")
   testsPassed              Int      @default(0) @map("tests_passed")
   testsFailed              Int      @default(0) @map("tests_failed")
   controlEffectivenessRate Decimal? @map("control_effectiveness_rate") @db.Decimal(5, 2)
-  
+
   // Request Metrics
   totalRequests            Int      @default(0) @map("total_requests")
   openRequests             Int      @default(0) @map("open_requests")
   overdueRequests          Int      @default(0) @map("overdue_requests")
   avgRequestCompletionDays Decimal? @map("avg_request_completion_days") @db.Decimal(8, 2)
-  
+
   // Detailed Breakdown
   findingsByCategory Json @default("{}") @map("findings_by_category")
   findingsByStatus   Json @default("{}") @map("findings_by_status")
   auditsByType       Json @default("{}") @map("audits_by_type")
   auditsByStatus     Json @default("{}") @map("audits_by_status")
-  
+
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   @@unique([organizationId, snapshotDate, snapshotType])
   @@index([organizationId, snapshotDate])
   @@map("audit_analytics_snapshots")
@@ -4991,7 +5082,7 @@ model AuditAnalyticsSnapshot {
 model ScimProviderConfig {
   id              String    @id @default(uuid())
   organizationId  String    @unique @map("organization_id")
-  provider        String    // okta, azure_ad, onelogin, google, generic
+  provider        String // okta, azure_ad, onelogin, google, generic
   bearerToken     String    @map("bearer_token") // Hashed token
   enabled         Boolean   @default(true)
   defaultGroupIds Json      @default("[]") @map("default_group_ids")
@@ -5034,18 +5125,18 @@ model ScimGroupExternalId {
 // ===========================================
 
 model ApprovalWorkflow {
-  id                String    @id @default(uuid())
-  organizationId    String    @map("organization_id")
+  id                String   @id @default(uuid())
+  organizationId    String   @map("organization_id")
   name              String
   description       String?
-  entityType        String    @map("entity_type") // policy, risk, control, vendor, etc.
-  mode              String    @default("sequential") // sequential, parallel, any
-  steps             Json      // Array of workflow steps
-  triggerConditions Json?     @map("trigger_conditions") // JSON logic for auto-triggering
-  isActive          Boolean   @default(true) @map("is_active")
-  createdBy         String    @map("created_by")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  entityType        String   @map("entity_type") // policy, risk, control, vendor, etc.
+  mode              String   @default("sequential") // sequential, parallel, any
+  steps             Json // Array of workflow steps
+  triggerConditions Json?    @map("trigger_conditions") // JSON logic for auto-triggering
+  isActive          Boolean  @default(true) @map("is_active")
+  createdBy         String   @map("created_by")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   // Relations
   requests ApprovalRequest[]
@@ -5085,22 +5176,22 @@ model ApprovalRequest {
 }
 
 model ApprovalStep {
-  id              String    @id @default(uuid())
-  requestId       String    @map("request_id")
-  stepNumber      Int       @map("step_number")
-  stepName        String    @map("step_name")
-  approverType    String    @map("approver_type") // user, role, group, manager, owner
-  approverValue   String    @map("approver_value") // userId, role name, groupId
-  requireComment  Boolean   @default(false) @map("require_comment")
-  status          String    @default("waiting") // waiting, pending, approved, rejected
-  approverId      String?   @map("approver_id")
-  approverName    String?   @map("approver_name")
-  comment         String?
-  conditions      Json?     // Conditions attached to approval
-  decidedAt       DateTime? @map("decided_at")
-  dueAt           DateTime? @map("due_at")
-  escalateToUserId String?  @map("escalate_to_user_id")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id               String    @id @default(uuid())
+  requestId        String    @map("request_id")
+  stepNumber       Int       @map("step_number")
+  stepName         String    @map("step_name")
+  approverType     String    @map("approver_type") // user, role, group, manager, owner
+  approverValue    String    @map("approver_value") // userId, role name, groupId
+  requireComment   Boolean   @default(false) @map("require_comment")
+  status           String    @default("waiting") // waiting, pending, approved, rejected
+  approverId       String?   @map("approver_id")
+  approverName     String?   @map("approver_name")
+  comment          String?
+  conditions       Json? // Conditions attached to approval
+  decidedAt        DateTime? @map("decided_at")
+  dueAt            DateTime? @map("due_at")
+  escalateToUserId String?   @map("escalate_to_user_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
   // Relations
   request ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
@@ -5115,25 +5206,25 @@ model ApprovalStep {
 // ===========================================
 
 model ExportJob {
-  id             String    @id @default(uuid())
-  organizationId String    @map("organization_id")
-  entityType     String    @map("entity_type") // controls, policies, risks, etc.
-  format         String    // json, csv, xlsx, pdf
-  name           String?
-  status         String    @default("pending") // pending, processing, completed, failed, expired
-  progress       Int       @default(0) // 0-100
-  recordCount    Int?      @map("record_count")
-  fileSize       Int?      @map("file_size") // bytes
-  storagePath    String?   @map("storage_path")
-  downloadUrl    String?   @map("download_url")
+  id                   String    @id @default(uuid())
+  organizationId       String    @map("organization_id")
+  entityType           String    @map("entity_type") // controls, policies, risks, etc.
+  format               String // json, csv, xlsx, pdf
+  name                 String?
+  status               String    @default("pending") // pending, processing, completed, failed, expired
+  progress             Int       @default(0) // 0-100
+  recordCount          Int?      @map("record_count")
+  fileSize             Int?      @map("file_size") // bytes
+  storagePath          String?   @map("storage_path")
+  downloadUrl          String?   @map("download_url")
   downloadUrlExpiresAt DateTime? @map("download_url_expires_at")
-  config         Json      @default("{}") // Export configuration options
-  errorMessage   String?   @map("error_message")
-  requestedBy    String    @map("requested_by")
-  completedAt    DateTime? @map("completed_at")
-  expiresAt      DateTime? @map("expires_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  config               Json      @default("{}") // Export configuration options
+  errorMessage         String?   @map("error_message")
+  requestedBy          String    @map("requested_by")
+  completedAt          DateTime? @map("completed_at")
+  expiresAt            DateTime? @map("expires_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   @@index([organizationId, status])
   @@index([organizationId, entityType])
@@ -5146,25 +5237,25 @@ model ExportJob {
 // ===========================================
 
 model CustomFieldDefinition {
-  id             String    @id @default(uuid())
-  organizationId String    @map("organization_id")
-  name           String    // Internal field name
-  label          String    // Display label
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  name           String // Internal field name
+  label          String // Display label
   description    String?
-  fieldType      String    @map("field_type") // text, number, date, select, etc.
-  entityTypes    String[]  @map("entity_types") // Which entity types this applies to
-  isRequired     Boolean   @default(false) @map("is_required")
-  defaultValue   Json?     @map("default_value")
+  fieldType      String   @map("field_type") // text, number, date, select, etc.
+  entityTypes    String[] @map("entity_types") // Which entity types this applies to
+  isRequired     Boolean  @default(false) @map("is_required")
+  defaultValue   Json?    @map("default_value")
   placeholder    String?
-  options        Json?     // For select/multi-select fields
-  validation     Json?     // Validation rules
-  order          Int       @default(0)
-  group          String?   // Grouping for UI organization
-  showInList     Boolean   @default(false) @map("show_in_list")
-  searchable     Boolean   @default(false)
-  isActive       Boolean   @default(true) @map("is_active")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  options        Json? // For select/multi-select fields
+  validation     Json? // Validation rules
+  order          Int      @default(0)
+  group          String? // Grouping for UI organization
+  showInList     Boolean  @default(false) @map("show_in_list")
+  searchable     Boolean  @default(false)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
   values CustomFieldValue[]
@@ -5204,9 +5295,9 @@ model UserDelegation {
   delegateName   String    @map("delegate_name")
   startDate      DateTime  @map("start_date")
   endDate        DateTime  @map("end_date")
-  scope          String    // all, approvals, tasks, reviews, specific
-  entityTypes    String[]  @map("entity_types") @default([])
-  entityIds      String[]  @map("entity_ids") @default([])
+  scope          String // all, approvals, tasks, reviews, specific
+  entityTypes    String[]  @default([]) @map("entity_types")
+  entityIds      String[]  @default([]) @map("entity_ids")
   reason         String?
   status         String    @default("pending") // pending, active, expired, revoked, declined
   acceptedAt     DateTime? @map("accepted_at")
@@ -5232,7 +5323,7 @@ model RetentionPolicy {
   entityType          String    @map("entity_type") // audit_logs, evidence, etc.
   periodValue         Int       @map("period_value")
   periodUnit          String    @map("period_unit") // days, months, years
-  action              String    // archive, delete, anonymize
+  action              String // archive, delete, anonymize
   isEnabled           Boolean   @default(true) @map("is_enabled")
   filterConditions    Json?     @map("filter_conditions")
   description         String?
@@ -5269,35 +5360,35 @@ model JiraConnection {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  organization    Organization         @relation(fields: [organizationId], references: [id])
-  mappings        JiraProjectMapping[]
+  organization Organization         @relation(fields: [organizationId], references: [id])
+  mappings     JiraProjectMapping[]
 
   @@map("jira_connections")
 }
 
 model JiraProjectMapping {
-  id              String    @id @default(uuid())
-  organizationId  String    @map("organization_id")
-  jiraProjectKey  String    @map("jira_project_key")
-  jiraProjectName String    @map("jira_project_name")
-  grcEntityType   String    @map("grc_entity_type") // risk, finding, task, remediation, control_gap
-  jiraIssueType   String    @map("jira_issue_type")
-  syncDirection   String    @map("sync_direction") // grc_to_jira, jira_to_grc, bidirectional
-  fieldMappings   Json?     @map("field_mappings")
-  statusMappings  Json?     @map("status_mappings")
-  autoCreate      Boolean   @default(false) @map("auto_create")
-  autoSyncStatus  Boolean   @default(true) @map("auto_sync_status")
-  syncComments    Boolean   @default(false) @map("sync_comments")
-  syncAttachments Boolean   @default(false) @map("sync_attachments")
-  jqlFilter       String?   @map("jql_filter") @db.Text
-  isEnabled       Boolean   @default(true) @map("is_enabled")
-  lastSyncAt      DateTime? @map("last_sync_at")
-  syncedIssueCount Int?     @map("synced_issue_count")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id               String    @id @default(uuid())
+  organizationId   String    @map("organization_id")
+  jiraProjectKey   String    @map("jira_project_key")
+  jiraProjectName  String    @map("jira_project_name")
+  grcEntityType    String    @map("grc_entity_type") // risk, finding, task, remediation, control_gap
+  jiraIssueType    String    @map("jira_issue_type")
+  syncDirection    String    @map("sync_direction") // grc_to_jira, jira_to_grc, bidirectional
+  fieldMappings    Json?     @map("field_mappings")
+  statusMappings   Json?     @map("status_mappings")
+  autoCreate       Boolean   @default(false) @map("auto_create")
+  autoSyncStatus   Boolean   @default(true) @map("auto_sync_status")
+  syncComments     Boolean   @default(false) @map("sync_comments")
+  syncAttachments  Boolean   @default(false) @map("sync_attachments")
+  jqlFilter        String?   @map("jql_filter") @db.Text
+  isEnabled        Boolean   @default(true) @map("is_enabled")
+  lastSyncAt       DateTime? @map("last_sync_at")
+  syncedIssueCount Int?      @map("synced_issue_count")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  connection      JiraConnection?   @relation(fields: [organizationId], references: [organizationId])
-  issueLinks      JiraIssueLink[]
+  connection JiraConnection? @relation(fields: [organizationId], references: [organizationId])
+  issueLinks JiraIssueLink[]
 
   @@unique([organizationId, jiraProjectKey, grcEntityType])
   @@index([organizationId, isEnabled])
@@ -5305,21 +5396,21 @@ model JiraProjectMapping {
 }
 
 model JiraIssueLink {
-  id              String    @id @default(uuid())
-  organizationId  String    @map("organization_id")
-  mappingId       String    @map("mapping_id")
-  jiraKey         String    @map("jira_key")
-  jiraId          String    @map("jira_id")
-  jiraUrl         String    @map("jira_url")
-  grcEntityType   String    @map("grc_entity_type")
-  grcEntityId     String    @map("grc_entity_id")
-  lastSyncedAt    DateTime  @map("last_synced_at")
-  syncStatus      String    @default("synced") @map("sync_status") // synced, pending, error
-  syncError       String?   @map("sync_error")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  mappingId      String   @map("mapping_id")
+  jiraKey        String   @map("jira_key")
+  jiraId         String   @map("jira_id")
+  jiraUrl        String   @map("jira_url")
+  grcEntityType  String   @map("grc_entity_type")
+  grcEntityId    String   @map("grc_entity_id")
+  lastSyncedAt   DateTime @map("last_synced_at")
+  syncStatus     String   @default("synced") @map("sync_status") // synced, pending, error
+  syncError      String?  @map("sync_error")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  mapping         JiraProjectMapping @relation(fields: [mappingId], references: [id], onDelete: Cascade)
+  mapping JiraProjectMapping @relation(fields: [mappingId], references: [id], onDelete: Cascade)
 
   @@unique([mappingId, jiraKey])
   @@unique([mappingId, grcEntityType, grcEntityId])
@@ -5347,37 +5438,37 @@ model ServiceNowConnection {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  organization    Organization            @relation(fields: [organizationId], references: [id])
-  mappings        ServiceNowTableMapping[]
+  organization Organization             @relation(fields: [organizationId], references: [id])
+  mappings     ServiceNowTableMapping[]
 
   @@map("servicenow_connections")
 }
 
 model ServiceNowTableMapping {
-  id                  String    @id @default(uuid())
-  organizationId      String    @map("organization_id")
-  snowTableName       String    @map("snow_table_name") // e.g., incident, change_request, problem
-  snowTableLabel      String    @map("snow_table_label")
-  grcEntityType       String    @map("grc_entity_type") // risk, finding, task, remediation
-  syncDirection       String    @map("sync_direction") // grc_to_snow, snow_to_grc, bidirectional
-  fieldMappings       Json?     @map("field_mappings")
-  statusMappings      Json?     @map("status_mappings")
-  priorityMappings    Json?     @map("priority_mappings")
-  autoCreate          Boolean   @default(false) @map("auto_create")
-  autoSyncStatus      Boolean   @default(true) @map("auto_sync_status")
-  syncAttachments     Boolean   @default(false) @map("sync_attachments")
-  syncWorkNotes       Boolean   @default(false) @map("sync_work_notes")
-  queryFilter         String?   @map("query_filter") @db.Text // ServiceNow encoded query
-  assignmentGroupId   String?   @map("assignment_group_id")
-  categoryId          String?   @map("category_id")
-  isEnabled           Boolean   @default(true) @map("is_enabled")
-  lastSyncAt          DateTime? @map("last_sync_at")
-  syncedRecordCount   Int?      @map("synced_record_count")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(uuid())
+  organizationId    String    @map("organization_id")
+  snowTableName     String    @map("snow_table_name") // e.g., incident, change_request, problem
+  snowTableLabel    String    @map("snow_table_label")
+  grcEntityType     String    @map("grc_entity_type") // risk, finding, task, remediation
+  syncDirection     String    @map("sync_direction") // grc_to_snow, snow_to_grc, bidirectional
+  fieldMappings     Json?     @map("field_mappings")
+  statusMappings    Json?     @map("status_mappings")
+  priorityMappings  Json?     @map("priority_mappings")
+  autoCreate        Boolean   @default(false) @map("auto_create")
+  autoSyncStatus    Boolean   @default(true) @map("auto_sync_status")
+  syncAttachments   Boolean   @default(false) @map("sync_attachments")
+  syncWorkNotes     Boolean   @default(false) @map("sync_work_notes")
+  queryFilter       String?   @map("query_filter") @db.Text // ServiceNow encoded query
+  assignmentGroupId String?   @map("assignment_group_id")
+  categoryId        String?   @map("category_id")
+  isEnabled         Boolean   @default(true) @map("is_enabled")
+  lastSyncAt        DateTime? @map("last_sync_at")
+  syncedRecordCount Int?      @map("synced_record_count")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  connection          ServiceNowConnection?  @relation(fields: [organizationId], references: [organizationId])
-  recordLinks         ServiceNowRecordLink[]
+  connection  ServiceNowConnection?  @relation(fields: [organizationId], references: [organizationId])
+  recordLinks ServiceNowRecordLink[]
 
   @@unique([organizationId, snowTableName, grcEntityType])
   @@index([organizationId, isEnabled])
@@ -5385,21 +5476,21 @@ model ServiceNowTableMapping {
 }
 
 model ServiceNowRecordLink {
-  id              String    @id @default(uuid())
-  organizationId  String    @map("organization_id")
-  mappingId       String    @map("mapping_id")
-  snowSysId       String    @map("snow_sys_id")
-  snowNumber      String    @map("snow_number") // e.g., INC0001234
-  snowUrl         String    @map("snow_url")
-  grcEntityType   String    @map("grc_entity_type")
-  grcEntityId     String    @map("grc_entity_id")
-  lastSyncedAt    DateTime  @map("last_synced_at")
-  syncStatus      String    @default("synced") @map("sync_status")
-  syncError       String?   @map("sync_error")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  mappingId      String   @map("mapping_id")
+  snowSysId      String   @map("snow_sys_id")
+  snowNumber     String   @map("snow_number") // e.g., INC0001234
+  snowUrl        String   @map("snow_url")
+  grcEntityType  String   @map("grc_entity_type")
+  grcEntityId    String   @map("grc_entity_id")
+  lastSyncedAt   DateTime @map("last_synced_at")
+  syncStatus     String   @default("synced") @map("sync_status")
+  syncError      String?  @map("sync_error")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  mapping         ServiceNowTableMapping @relation(fields: [mappingId], references: [id], onDelete: Cascade)
+  mapping ServiceNowTableMapping @relation(fields: [mappingId], references: [id], onDelete: Cascade)
 
   @@unique([mappingId, snowSysId])
   @@unique([mappingId, grcEntityType, grcEntityId])
@@ -5412,24 +5503,24 @@ model ServiceNowRecordLink {
 // ===========================================
 
 model Department {
-  id              String       @id @default(uuid())
-  organizationId  String       @map("organization_id")
-  name            String
-  code            String       // Short code like "IT", "HR", "FIN"
-  description     String?
-  parentId        String?      @map("parent_id")
-  headUserId      String?      @map("head_user_id")
-  isActive        Boolean      @default(true) @map("is_active")
-  metadata        Json?
-  createdAt       DateTime     @default(now()) @map("created_at")
-  updatedAt       DateTime     @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  name           String
+  code           String // Short code like "IT", "HR", "FIN"
+  description    String?
+  parentId       String?  @map("parent_id")
+  headUserId     String?  @map("head_user_id")
+  isActive       Boolean  @default(true) @map("is_active")
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization    Organization @relation(fields: [organizationId], references: [id])
-  parent          Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
-  children        Department[] @relation("DepartmentHierarchy")
-  headUser        User?        @relation("DepartmentHead", fields: [headUserId], references: [id])
-  members         UserDepartment[]
-  groupScopes     PermissionGroupDepartmentScope[]
+  organization Organization                     @relation(fields: [organizationId], references: [id])
+  parent       Department?                      @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children     Department[]                     @relation("DepartmentHierarchy")
+  headUser     User?                            @relation("DepartmentHead", fields: [headUserId], references: [id])
+  members      UserDepartment[]
+  groupScopes  PermissionGroupDepartmentScope[]
 
   @@unique([organizationId, code])
   @@index([organizationId, isActive])
@@ -5438,17 +5529,17 @@ model Department {
 }
 
 model UserDepartment {
-  id              String     @id @default(uuid())
-  userId          String     @map("user_id")
-  departmentId    String     @map("department_id")
-  isPrimary       Boolean    @default(false) @map("is_primary")
-  role            String?    // Optional role within department
-  startDate       DateTime?  @map("start_date")
-  endDate         DateTime?  @map("end_date")
-  createdAt       DateTime   @default(now()) @map("created_at")
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  departmentId String    @map("department_id")
+  isPrimary    Boolean   @default(false) @map("is_primary")
+  role         String? // Optional role within department
+  startDate    DateTime? @map("start_date")
+  endDate      DateTime? @map("end_date")
+  createdAt    DateTime  @default(now()) @map("created_at")
 
-  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  department      Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, departmentId])
   @@index([departmentId])
@@ -5456,14 +5547,14 @@ model UserDepartment {
 }
 
 model PermissionGroupHierarchy {
-  id              String          @id @default(uuid())
-  parentGroupId   String          @map("parent_group_id")
-  childGroupId    String          @map("child_group_id")
-  inheritPermissions Boolean      @default(true) @map("inherit_permissions")
-  createdAt       DateTime        @default(now()) @map("created_at")
+  id                 String   @id @default(uuid())
+  parentGroupId      String   @map("parent_group_id")
+  childGroupId       String   @map("child_group_id")
+  inheritPermissions Boolean  @default(true) @map("inherit_permissions")
+  createdAt          DateTime @default(now()) @map("created_at")
 
-  parentGroup     PermissionGroup @relation("ParentGroup", fields: [parentGroupId], references: [id], onDelete: Cascade)
-  childGroup      PermissionGroup @relation("ChildGroup", fields: [childGroupId], references: [id], onDelete: Cascade)
+  parentGroup PermissionGroup @relation("ParentGroup", fields: [parentGroupId], references: [id], onDelete: Cascade)
+  childGroup  PermissionGroup @relation("ChildGroup", fields: [childGroupId], references: [id], onDelete: Cascade)
 
   @@unique([parentGroupId, childGroupId])
   @@index([childGroupId])
@@ -5471,15 +5562,15 @@ model PermissionGroupHierarchy {
 }
 
 model PermissionGroupDepartmentScope {
-  id              String          @id @default(uuid())
-  groupId         String          @map("group_id")
-  departmentId    String          @map("department_id")
-  scopeType       String          @map("scope_type") // full, read_only, limited
-  includeChildren Boolean         @default(true) @map("include_children")
-  createdAt       DateTime        @default(now()) @map("created_at")
+  id              String   @id @default(uuid())
+  groupId         String   @map("group_id")
+  departmentId    String   @map("department_id")
+  scopeType       String   @map("scope_type") // full, read_only, limited
+  includeChildren Boolean  @default(true) @map("include_children")
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  group           PermissionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  department      Department      @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  group      PermissionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  department Department      @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, departmentId])
   @@index([departmentId])
@@ -5491,43 +5582,43 @@ model PermissionGroupDepartmentScope {
 // ===========================================
 
 model JobQueue {
-  id              String    @id @default(uuid())
-  name            String    @unique
-  description     String?
-  isPaused        Boolean   @default(false) @map("is_paused")
-  concurrency     Int       @default(1)
-  maxRetries      Int       @default(3) @map("max_retries")
-  retryDelay      Int       @default(5000) @map("retry_delay") // ms
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isPaused    Boolean  @default(false) @map("is_paused")
+  concurrency Int      @default(1)
+  maxRetries  Int      @default(3) @map("max_retries")
+  retryDelay  Int      @default(5000) @map("retry_delay") // ms
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  jobs            Job[]
-  scheduledJobs   ScheduledJob[]
+  jobs          Job[]
+  scheduledJobs ScheduledJob[]
 
   @@map("job_queues")
 }
 
 model Job {
-  id              String    @id @default(uuid())
-  queueId         String    @map("queue_id")
-  name            String
-  data            Json
-  status          String    @default("pending") // pending, active, completed, failed, delayed
-  priority        Int       @default(0)
-  attempts        Int       @default(0)
-  maxAttempts     Int       @default(3) @map("max_attempts")
-  progress        Int       @default(0)
-  result          Json?
-  error           String?   @db.Text
-  stackTrace      String?   @map("stack_trace") @db.Text
-  processedAt     DateTime? @map("processed_at")
-  completedAt     DateTime? @map("completed_at")
-  failedAt        DateTime? @map("failed_at")
-  delayUntil      DateTime? @map("delay_until")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  queueId     String    @map("queue_id")
+  name        String
+  data        Json
+  status      String    @default("pending") // pending, active, completed, failed, delayed
+  priority    Int       @default(0)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3) @map("max_attempts")
+  progress    Int       @default(0)
+  result      Json?
+  error       String?   @db.Text
+  stackTrace  String?   @map("stack_trace") @db.Text
+  processedAt DateTime? @map("processed_at")
+  completedAt DateTime? @map("completed_at")
+  failedAt    DateTime? @map("failed_at")
+  delayUntil  DateTime? @map("delay_until")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  queue           JobQueue  @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  queue JobQueue @relation(fields: [queueId], references: [id], onDelete: Cascade)
 
   @@index([queueId, status])
   @@index([status, delayUntil])
@@ -5536,24 +5627,24 @@ model Job {
 }
 
 model ScheduledJob {
-  id              String    @id @default(uuid())
-  queueId         String    @map("queue_id")
-  name            String
-  description     String?
-  cronExpression  String    @map("cron_expression")
-  timezone        String    @default("UTC")
-  data            Json?
-  isEnabled       Boolean   @default(true) @map("is_enabled")
-  lastRunAt       DateTime? @map("last_run_at")
-  nextRunAt       DateTime? @map("next_run_at")
-  lastRunStatus   String?   @map("last_run_status")
-  lastRunError    String?   @map("last_run_error") @db.Text
-  runCount        Int       @default(0) @map("run_count")
-  failCount       Int       @default(0) @map("fail_count")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  queueId        String    @map("queue_id")
+  name           String
+  description    String?
+  cronExpression String    @map("cron_expression")
+  timezone       String    @default("UTC")
+  data           Json?
+  isEnabled      Boolean   @default(true) @map("is_enabled")
+  lastRunAt      DateTime? @map("last_run_at")
+  nextRunAt      DateTime? @map("next_run_at")
+  lastRunStatus  String?   @map("last_run_status")
+  lastRunError   String?   @map("last_run_error") @db.Text
+  runCount       Int       @default(0) @map("run_count")
+  failCount      Int       @default(0) @map("fail_count")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  queue           JobQueue  @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  queue JobQueue @relation(fields: [queueId], references: [id], onDelete: Cascade)
 
   @@unique([queueId, name])
   @@index([isEnabled, nextRunAt])

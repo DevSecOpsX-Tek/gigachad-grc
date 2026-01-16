@@ -10,15 +10,40 @@ import { RiskConfigController } from './risk-config.controller';
 import { RiskScenariosService } from './risk-scenarios.service';
 import { RiskScenariosController } from './risk-scenarios.controller';
 import { RiskScenarioLibraryService } from './risk-scenario-library.service';
+import { RiskWorkflowTasksService } from './risk-workflow-tasks.service';
+import { RiskWorkflowTasksController } from './risk-workflow-tasks.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [PrismaModule, AuditModule, NotificationsModule],
-  controllers: [RiskController, AssetsController, RiskWorkflowController, RiskConfigController, RiskScenariosController],
-  providers: [RiskService, AssetsService, RiskWorkflowService, RiskConfigService, RiskScenariosService, RiskScenarioLibraryService],
-  exports: [RiskService, AssetsService, RiskWorkflowService, RiskConfigService, RiskScenariosService, RiskScenarioLibraryService],
+  controllers: [
+    RiskController,
+    AssetsController,
+    RiskWorkflowController,
+    RiskConfigController,
+    RiskScenariosController,
+    RiskWorkflowTasksController,
+  ],
+  providers: [
+    RiskService,
+    AssetsService,
+    RiskWorkflowService,
+    RiskConfigService,
+    RiskScenariosService,
+    RiskScenarioLibraryService,
+    RiskWorkflowTasksService,
+  ],
+  exports: [
+    RiskService,
+    AssetsService,
+    RiskWorkflowService,
+    RiskConfigService,
+    RiskScenariosService,
+    RiskScenarioLibraryService,
+    RiskWorkflowTasksService,
+  ],
 })
 export class RiskModule {}
 

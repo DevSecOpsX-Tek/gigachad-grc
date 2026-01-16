@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CacheService, CacheKeys } from '@gigachad-grc/shared';
+import { RiskWorkflowTasksService } from './risk-workflow-tasks.service';
 import {
   RiskLevel as PrismaRiskLevel,
   RiskTreatmentStatus as PrismaRiskTreatmentStatus,
@@ -51,6 +52,8 @@ export class RiskService {
     private prisma: PrismaService,
     private auditService: AuditService,
     private cache: CacheService,
+    @Inject(forwardRef(() => RiskWorkflowTasksService))
+    private riskWorkflowTasksService: RiskWorkflowTasksService,
   ) {}
 
   // ===========================
@@ -634,6 +637,22 @@ export class RiskService {
         : `Rejected risk "${risk.riskId}" - not a valid risk`,
     });
 
+    // Auto-create task when risk is validated
+    if (dto.approved) {
+      try {
+        const assigneeId = dto.riskAssessorId || userId;
+        await this.riskWorkflowTasksService.createTaskForWorkflowTransition(
+          id,
+          organizationId,
+          'risk_validated',
+          assigneeId,
+          userId,
+        );
+      } catch (error) {
+        this.logger.error(`Failed to auto-create task for risk validation: ${error.message}`);
+      }
+    }
+
     return this.toResponseDto(updated);
   }
 
@@ -822,6 +841,19 @@ export class RiskService {
       description: `Submitted assessment for risk "${risk.riskId}" with score: ${calculatedRiskScore}`,
     });
 
+    // Auto-create task for GRC review
+    try {
+      await this.riskWorkflowTasksService.createTaskForWorkflowTransition(
+        id,
+        organizationId,
+        'assessment_submitted',
+        risk.grcSmeId || userId,
+        userId,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to auto-create task for assessment submission: ${error.message}`);
+    }
+
     return this.toResponseDto(updated);
   }
 
@@ -929,6 +961,22 @@ export class RiskService {
         ? `Approved assessment for risk "${risk.riskId}"`
         : `Requested revision for risk "${risk.riskId}" assessment`,
     });
+
+    // Auto-create task when assessment is approved
+    if (dto.approved) {
+      try {
+        const assigneeId = risk.assessment.recommendedOwnerId || risk.riskOwnerId || userId;
+        await this.riskWorkflowTasksService.createTaskForWorkflowTransition(
+          id,
+          organizationId,
+          'assessment_approved',
+          assigneeId,
+          userId,
+        );
+      } catch (error) {
+        this.logger.error(`Failed to auto-create task for assessment approval: ${error.message}`);
+      }
+    }
 
     return this.toResponseDto(updated);
   }
@@ -1185,6 +1233,19 @@ export class RiskService {
       entityName: risk.title,
       description: `Assigned executive approver for risk "${risk.riskId}"`,
     });
+
+    // Auto-create task for executive approval
+    try {
+      await this.riskWorkflowTasksService.createTaskForWorkflowTransition(
+        id,
+        organizationId,
+        'executive_approver_assigned',
+        dto.executiveApproverId,
+        userId,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to auto-create task for executive approval: ${error.message}`);
+    }
 
     return this.toResponseDto(updated);
   }

@@ -3,6 +3,7 @@ import { makeCounterProvider } from '@willsoto/nestjs-prometheus';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { ScheduledNotificationsService } from './scheduled-notifications.service';
+import { SlackService } from './slack.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { EmailModule } from '../email/email.module';
 
@@ -13,6 +14,7 @@ import { EmailModule } from '../email/email.module';
   providers: [
     NotificationsService,
     ScheduledNotificationsService,
+    SlackService,
     // Metrics: track scheduled notification runs grouped by status
     makeCounterProvider({
       name: 'scheduled_notifications_runs_total',
@@ -20,7 +22,7 @@ import { EmailModule } from '../email/email.module';
       labelNames: ['status'],
     }),
   ],
-  exports: [NotificationsService, ScheduledNotificationsService],
+  exports: [NotificationsService, ScheduledNotificationsService, SlackService],
 })
 export class NotificationsModule {}
 

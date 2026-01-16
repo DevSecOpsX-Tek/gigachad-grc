@@ -1593,6 +1593,146 @@ export const riskScenariosApi = {
     api.post('/api/risk-scenarios/bulk/from-templates', { templateIds }),
 };
 
+// Risk Workflow Tasks API
+export interface RiskWorkflowTask {
+  id: string;
+  riskId: string;
+  taskType: string;
+  title: string;
+  description?: string;
+  assigneeId: string;
+  assignedById: string;
+  assignedAt: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'reassigned';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  dueDate?: string;
+  startedAt?: string;
+  completedAt?: string;
+  completedById?: string;
+  workflowStage: string;
+  previousStatus?: string;
+  resultingAction?: string;
+  notes?: string;
+  completionNotes?: string;
+  isAutoCreated: boolean;
+  createdAt: string;
+  updatedAt: string;
+  risk?: {
+    id: string;
+    riskId: string;
+    title: string;
+    inherentRisk?: string;
+    status: string;
+  };
+  assignee?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+  assignedBy?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+export interface RiskWorkflowTaskListResponse {
+  tasks: RiskWorkflowTask[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface RiskWorkflowTaskStats {
+  pending: number;
+  inProgress: number;
+  overdue: number;
+  completedThisWeek: number;
+  total: number;
+}
+
+export interface CreateRiskWorkflowTaskData {
+  taskType: string;
+  title: string;
+  description?: string;
+  assigneeId: string;
+  priority?: string;
+  dueDate?: string;
+  notes?: string;
+  workflowStage?: string;
+}
+
+export interface UpdateRiskWorkflowTaskData {
+  title?: string;
+  description?: string;
+  priority?: string;
+  dueDate?: string;
+  notes?: string;
+}
+
+export interface RiskTaskFilterParams {
+  status?: string;
+  taskType?: string;
+  priority?: string;
+  assigneeId?: string;
+  workflowStage?: string;
+  overdue?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export const riskTasksApi = {
+  // Get tasks assigned to current user
+  getMyTasks: (params?: RiskTaskFilterParams): Promise<AxiosResponse<RiskWorkflowTaskListResponse>> =>
+    api.get('/api/risk-tasks/my-tasks', { params }),
+  
+  // Get task statistics for current user
+  getMyStats: (): Promise<AxiosResponse<RiskWorkflowTaskStats>> =>
+    api.get('/api/risk-tasks/my-stats'),
+  
+  // Get all tasks in organization (admin view)
+  list: (params?: RiskTaskFilterParams): Promise<AxiosResponse<RiskWorkflowTaskListResponse>> =>
+    api.get('/api/risk-tasks', { params }),
+  
+  // Get organization-wide stats
+  getStats: (): Promise<AxiosResponse<RiskWorkflowTaskStats>> =>
+    api.get('/api/risk-tasks/stats'),
+  
+  // Get tasks for a specific risk
+  getForRisk: (riskId: string): Promise<AxiosResponse<RiskWorkflowTask[]>> =>
+    api.get(`/api/risk-tasks/risk/${riskId}`),
+  
+  // Create a manual task for a risk
+  create: (riskId: string, data: CreateRiskWorkflowTaskData): Promise<AxiosResponse<RiskWorkflowTask>> =>
+    api.post(`/api/risk-tasks/risk/${riskId}`, data),
+  
+  // Get a single task
+  get: (taskId: string): Promise<AxiosResponse<RiskWorkflowTask>> =>
+    api.get(`/api/risk-tasks/${taskId}`),
+  
+  // Update a task
+  update: (taskId: string, data: UpdateRiskWorkflowTaskData): Promise<AxiosResponse<RiskWorkflowTask>> =>
+    api.put(`/api/risk-tasks/${taskId}`, data),
+  
+  // Start working on a task
+  start: (taskId: string): Promise<AxiosResponse<RiskWorkflowTask>> =>
+    api.post(`/api/risk-tasks/${taskId}/start`),
+  
+  // Complete a task
+  complete: (taskId: string, data?: { completionNotes?: string; resultingAction?: string }): Promise<AxiosResponse<RiskWorkflowTask>> =>
+    api.post(`/api/risk-tasks/${taskId}/complete`, data || {}),
+  
+  // Reassign a task
+  reassign: (taskId: string, data: { newAssigneeId: string; reason?: string }): Promise<AxiosResponse<RiskWorkflowTask>> =>
+    api.post(`/api/risk-tasks/${taskId}/reassign`, data),
+  
+  // Cancel a task
+  cancel: (taskId: string, reason: string): Promise<AxiosResponse<RiskWorkflowTask>> =>
+    api.post(`/api/risk-tasks/${taskId}/cancel`, { reason }),
+};
+
 // Extended risk operations (keep in risksApi object for backwards compat)
 Object.assign(risksApi, {
   // Risk-Asset linking

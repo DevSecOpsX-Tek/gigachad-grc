@@ -204,6 +204,10 @@ export default defineConfig(({ mode }) => {
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      '/api/risk-tasks': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
       '/api/seed': {
         target: 'http://localhost:3001',
         changeOrigin: true,

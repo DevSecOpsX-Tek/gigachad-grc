@@ -181,11 +181,15 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.controls.rule=PathPrefix(`/api/controls`)"
       - "traefik.http.routers.controls-evidence.rule=PathPrefix(`/api/evidence`)"
+      # Risk module is in controls service, not frameworks
+      - "traefik.http.routers.controls-risks.rule=PathPrefix(`/api/risks`)"
+      - "traefik.http.routers.controls-risk-config.rule=PathPrefix(`/api/risk-config`)"
+      - "traefik.http.routers.controls-risk-tasks.rule=PathPrefix(`/api/risk-tasks`)"
       - "traefik.http.services.controls.loadbalancer.server.port=3001"
     restart: unless-stopped
 
   # ===========================================
-  # Frameworks Service - Compliance Frameworks & Risk Management
+  # Frameworks Service - Compliance Frameworks
   # ===========================================
   frameworks:
     build:
@@ -225,7 +229,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frameworks.rule=PathPrefix(`/api/frameworks`)"
-      - "traefik.http.routers.frameworks-risks.rule=PathPrefix(`/api/risks`)"
       - "traefik.http.services.frameworks.loadbalancer.server.port=3002"
     restart: unless-stopped
 
