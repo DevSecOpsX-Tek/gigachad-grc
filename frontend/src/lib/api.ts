@@ -872,7 +872,7 @@ export const auditsApi = {
   create: (data: CreateAuditData): Promise<AxiosResponse<Audit>> => 
     api.post('/api/audits', data),
   update: (id: string, data: UpdateAuditData): Promise<AxiosResponse<Audit>> => 
-    api.put(`/api/audits/${id}`, data),
+    api.patch(`/api/audits/${id}`, data),
   delete: (id: string): Promise<AxiosResponse<void>> => 
     api.delete(`/api/audits/${id}`),
 };
@@ -884,7 +884,7 @@ export const auditRequestsApi = {
   create: (data: { auditId: string; title: string; description?: string; assigneeId?: string; dueDate?: string }) => 
     api.post('/api/audit-requests', data),
   update: (id: string, data: { title?: string; description?: string; status?: string; assigneeId?: string; dueDate?: string }) => 
-    api.put(`/api/audit-requests/${id}`, data),
+    api.patch(`/api/audit-requests/${id}`, data),
   delete: (id: string) => api.delete(`/api/audit-requests/${id}`),
 };
 
@@ -1028,7 +1028,7 @@ export const vendorsApi = {
   create: (data: CreateVendorData): Promise<AxiosResponse<Vendor>> => 
     api.post('/api/vendors', data),
   update: (id: string, data: UpdateVendorData): Promise<AxiosResponse<Vendor>> => 
-    api.put(`/api/vendors/${id}`, data),
+    api.patch(`/api/vendors/${id}`, data),
   delete: (id: string): Promise<AxiosResponse<void>> => 
     api.delete(`/api/vendors/${id}`),
   // Review scheduling endpoints
@@ -1257,7 +1257,7 @@ export const contractsApi = {
   create: (data: CreateContractData): Promise<AxiosResponse<Contract>> => 
     api.post('/api/contracts', data),
   update: (id: string, data: UpdateContractData): Promise<AxiosResponse<Contract>> => 
-    api.put(`/api/contracts/${id}`, data),
+    api.patch(`/api/contracts/${id}`, data),
   delete: (id: string): Promise<AxiosResponse<void>> => 
     api.delete(`/api/contracts/${id}`),
 };
